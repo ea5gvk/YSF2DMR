@@ -1,5 +1,6 @@
 /*
  *   Copyright (C) 2015,2016 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2018 by Andy Uribe CA6JAU
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -18,22 +19,12 @@
 
 #include "Sync.h"
 
-#include "DStarDefines.h"
 #include "DMRDefines.h"
 #include "YSFDefines.h"
-#include "P25Defines.h"
 
 #include <cstdio>
 #include <cassert>
 #include <cstring>
-
-
-void CSync::addDStarSync(unsigned char* data)
-{
-	assert(data != NULL);
-
-	::memcpy(data + DSTAR_VOICE_FRAME_LENGTH_BYTES, DSTAR_SYNC_BYTES, DSTAR_DATA_FRAME_LENGTH_BYTES);
-}
 
 void CSync::addDMRDataSync(unsigned char* data, bool duplex)
 {
@@ -68,9 +59,3 @@ void CSync::addYSFSync(unsigned char* data)
 	::memcpy(data, YSF_SYNC_BYTES, YSF_SYNC_LENGTH_BYTES);
 }
 
-void CSync::addP25Sync(unsigned char* data)
-{
-	assert(data != NULL);
-
-	::memcpy(data, P25_SYNC_BYTES, P25_SYNC_LENGTH_BYTES);
-}
