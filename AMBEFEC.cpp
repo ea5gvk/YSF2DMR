@@ -874,9 +874,7 @@ unsigned int CAMBEFEC::getDMR(unsigned char* data)
 {	
 	unsigned char tmp[9];
 
-	if (m_dmrN >= 3U) {
-		printf("DMR Blocks: %d\n", m_dmrN);
-		
+	if (m_dmrN >= 3U) {		
 		m_DMR.getData(data, 9U);
 		m_DMR.getData(tmp, 9U);
 		::memcpy(data + 9U, tmp, 4U);
@@ -896,10 +894,7 @@ unsigned int CAMBEFEC::getYSF(unsigned char* data)
 	data += YSF_SYNC_LENGTH_BYTES + YSF_FICH_LENGTH_BYTES;
 	unsigned char* data_tmp = data;
 
-	if (m_ysfN >= 5U) {
-	
-		printf("YSF Blocks: %d\n", m_ysfN);
-	
+	if (m_ysfN >= 5U) {	
 		data += 5U;
 		m_YSF.getData(data, 13U);
 		data += 18U;

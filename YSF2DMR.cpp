@@ -242,12 +242,9 @@ int CYSF2DMR::run()
 
 		if (dmrWatch.elapsed() > 55U)
 			if(test.getDMR(m_dmrFrame)) {
-				//::memcpy(m_dmrFrame, dmr_1k, 33U);
 				CDMREMB emb;
 				CDMRData rx_dmrdata;
 				unsigned int n_dmr = dmr_cnt % 6U;
-
-				printf("DMR N: %d\n", n_dmr);
 
 				rx_dmrdata.setSlotNo(2U);
 				rx_dmrdata.setSrcId(SRC_ID);
@@ -330,8 +327,6 @@ int CYSF2DMR::run()
 		if (ysfWatch.elapsed() > 90U)
 			if(test.getYSF(m_ysfFrame + 35U)) {
 				CYSFFICH fich;
-				
-				//::memcpy(m_ysfFrame + 35U, ysf_test, 120U);
 
 				// Add the YSF Sync
 				CSync::addYSFSync(m_ysfFrame + 35U);
