@@ -82,7 +82,6 @@ int main(int argc, char** argv)
 
 CYSF2DMR::CYSF2DMR(const std::string& configFile) :
 m_callsign(),
-m_suffix(),
 m_conf(configFile),
 m_dmrNetwork(NULL)
 {
@@ -170,7 +169,6 @@ int CYSF2DMR::run()
 #endif
 
 	m_callsign = m_conf.getCallsign();
-	m_suffix   = m_conf.getSuffix();
 
 	bool debug            = m_conf.getDMRNetworkDebug();
 	in_addr rptAddress    = CUDPSocket::lookup(m_conf.getRptAddress());
@@ -196,8 +194,6 @@ int CYSF2DMR::run()
 	}
 
 	CTimer networkWatchdog(100U, 0U, 1500U);
-
-	bool networkEnabled = m_conf.getDMRNetworkEnabled();
 
 	CStopWatch stopWatch;
 	CStopWatch ysfWatch;
@@ -284,42 +280,39 @@ int CYSF2DMR::run()
 			}
 		
 		while (m_dmrNetwork->read(tx_dmrdata) > 0) {
-			if (networkEnabled) { 
+			unsigned int slotNo = tx_dmrdata.getSlotNo();
+			unsigned int SrcId = tx_dmrdata.getSrcId();
+			unsigned int DstId = tx_dmrdata.getDstId();
+			//FLCO flco_dat = tx_dmrdata.getFLCO();
+			unsigned char N = tx_dmrdata.getN();
+			unsigned char SeqNo = tx_dmrdata.getSeqNo();
+			unsigned char DataType = tx_dmrdata.getDataType();
+			unsigned char BER = tx_dmrdata.getBER();
+			unsigned char RSSI = tx_dmrdata.getRSSI();
 		
-				unsigned int slotNo = tx_dmrdata.getSlotNo();
-				unsigned int SrcId = tx_dmrdata.getSrcId();
-				unsigned int DstId = tx_dmrdata.getDstId();
-				//FLCO flco_dat = tx_dmrdata.getFLCO();
-				unsigned char N = tx_dmrdata.getN();
-				unsigned char SeqNo = tx_dmrdata.getSeqNo();
-				unsigned char DataType = tx_dmrdata.getDataType();
-				unsigned char BER = tx_dmrdata.getBER();
-				unsigned char RSSI = tx_dmrdata.getRSSI();
-		
-				if (!tx_dmrdata.isMissing()) {
-					networkWatchdog.start();
-				
-					LogMessage("DMR Net recv: slotNo:%d, SrcId:%d, DstId:%d, N:%d, SeqNo:%d, DataType:%d, BER:%d, RSSI:%d", slotNo, SrcId, DstId, N, SeqNo, DataType, BER, RSSI);
+			if (!tx_dmrdata.isMissing()) {
+				networkWatchdog.start();
 
-					if(DataType == DT_VOICE_SYNC || DataType == DT_VOICE) {
-						unsigned char dmr_frame[50];
-						tx_dmrdata.getData(dmr_frame);
-						test.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
-					}
+				LogMessage("DMR Net recv: slotNo:%d, SrcId:%d, DstId:%d, N:%d, SeqNo:%d, DataType:%d, BER:%d, RSSI:%d", slotNo, SrcId, DstId, N, SeqNo, DataType, BER, RSSI);
+
+				if(DataType == DT_VOICE_SYNC || DataType == DT_VOICE) {
+					unsigned char dmr_frame[50];
+					tx_dmrdata.getData(dmr_frame);
+					test.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
 				}
-				else {
-					if(DataType == DT_VOICE_SYNC || DataType == DT_VOICE) {
-						unsigned char dmr_frame[50];
-						tx_dmrdata.getData(dmr_frame);
-						test.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
-					}
-					
-					networkWatchdog.clock(ms);
-					if (networkWatchdog.hasExpired()) {
-						LogDebug("Network watchdog has expired");
-						m_dmrNetwork->reset(2U);
-						networkWatchdog.stop();
-					}
+			}
+			else {
+				if(DataType == DT_VOICE_SYNC || DataType == DT_VOICE) {
+					unsigned char dmr_frame[50];
+					tx_dmrdata.getData(dmr_frame);
+					test.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
+				}
+
+				networkWatchdog.clock(ms);
+				if (networkWatchdog.hasExpired()) {
+					LogDebug("Network watchdog has expired");
+					m_dmrNetwork->reset(2U);
+					networkWatchdog.stop();
 				}
 			}
 		}

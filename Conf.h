@@ -33,7 +33,6 @@ public:
 
   // The General section
   std::string  getCallsign() const;
-  std::string  getSuffix() const;
   std::string  getRptAddress() const;
   unsigned int getRptPort() const;
   std::string  getMyAddress() const;
@@ -52,7 +51,6 @@ public:
   std::string  getURL() const;
   
   // The DMR Network section
-  bool         getDMRNetworkEnabled() const;
   unsigned int getDMRId() const;
   unsigned int getDMRColorCode() const;
   std::string  getDMRNetworkAddress() const;
@@ -74,7 +72,6 @@ public:
 private:
   std::string  m_file;
   std::string  m_callsign;
-  std::string  m_suffix;
   std::string  m_rptAddress;
   unsigned int m_rptPort;
   std::string  m_myAddress;
@@ -91,7 +88,6 @@ private:
   std::string  m_description;
   std::string  m_url;
   
-  bool         m_dmrNetworkEnabled;
   unsigned int m_dmrId;
   unsigned int m_dmrColorCode;
   std::string  m_dmrNetworkAddress;

@@ -51,7 +51,6 @@ public:
 
 private:
 	std::string    m_callsign;
-	std::string    m_suffix;
 	CConf          m_conf;
 	CDMRNetwork*   m_dmrNetwork;
 	unsigned char  m_ysfFrame[200U];

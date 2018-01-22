@@ -38,7 +38,6 @@ enum SECTION {
 CConf::CConf(const std::string& file) :
 m_file(file),
 m_callsign(),
-m_suffix(),
 m_rptAddress(),
 m_rptPort(0U),
 m_myAddress(),
@@ -53,7 +52,6 @@ m_height(0),
 m_location(),
 m_description(),
 m_url(),
-m_dmrNetworkEnabled(false),
 m_dmrId(0U),
 m_dmrColorCode(2U),
 m_dmrNetworkAddress(),
@@ -117,11 +115,6 @@ bool CConf::read()
 			for (unsigned int i = 0U; value[i] != 0; i++)
 				value[i] = ::toupper(value[i]);
 			m_callsign = value;
-		} else if (::strcmp(key, "Suffix") == 0) {
-			// Convert the callsign to upper case
-			for (unsigned int i = 0U; value[i] != 0; i++)
-				value[i] = ::toupper(value[i]);
-			m_suffix = value;
 		} else if (::strcmp(key, "RptAddress") == 0)
 			m_rptAddress = value;
 		else if (::strcmp(key, "RptPort") == 0)
@@ -152,9 +145,7 @@ bool CConf::read()
 		else if (::strcmp(key, "URL") == 0)
 			m_url = value;
 	} else if (section == SECTION_DMR_NETWORK) {
-		if (::strcmp(key, "Enable") == 0)
-			m_dmrNetworkEnabled = ::atoi(value) == 1;
-		else if (::strcmp(key, "Id") == 0)
+		if (::strcmp(key, "Id") == 0)
 			m_dmrId = (unsigned int)::atoi(value);
 		else if (::strcmp(key, "ColorCode") == 0)
 			m_dmrColorCode = (unsigned int)::atoi(value);
@@ -196,11 +187,6 @@ bool CConf::read()
 std::string CConf::getCallsign() const
 {
   return m_callsign;
-}
-
-std::string CConf::getSuffix() const
-{
-	return m_suffix;
 }
 
 std::string CConf::getRptAddress() const
@@ -271,11 +257,6 @@ std::string CConf::getDescription() const
 std::string CConf::getURL() const
 {
 	return m_url;
-}
-
-bool CConf::getDMRNetworkEnabled() const
-{
-	return m_dmrNetworkEnabled;
 }
 
 unsigned int CConf::getDMRId() const
