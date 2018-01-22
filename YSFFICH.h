@@ -1,5 +1,6 @@
 /*
  *   Copyright (C) 2015,2016 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2018 by Andy Uribe CA6JAU
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -29,16 +30,30 @@ public:
 	void encode(unsigned char* bytes);
 
 	unsigned char getFI() const;
+	unsigned char getCS() const;
 	unsigned char getCM() const;
+	unsigned char getBN() const;
+	unsigned char getBT() const;
 	unsigned char getFN() const;
 	unsigned char getFT() const;
 	unsigned char getDT() const;
+	unsigned char getMR() const;
+	bool getDev() const;
+	bool getSQL() const;
+	unsigned char getSQ() const;
 
 	void setFI(unsigned char fi);
-	void setBN(unsigned char bn);
-	void setBT(unsigned char bt);
+	void setCS(unsigned char cs);
 	void setFN(unsigned char fn);
 	void setFT(unsigned char ft);
+	void setBN(unsigned char bn);
+	void setBT(unsigned char bt);
+	void setDT(unsigned char dt);
+	void setMR(unsigned char mr);
+	void setVoIP(bool set);
+	void setDev(bool set);
+	void setSQL(bool set);
+	void setSQ(unsigned char sq);
 
 	void load(const unsigned char* fich);
 

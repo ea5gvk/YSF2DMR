@@ -1,5 +1,6 @@
 /*
  *   Copyright (C) 2009-2016 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2018 by Andy Uribe CA6JAU
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -164,9 +165,24 @@ unsigned char CYSFFICH::getFI() const
 	return (m_fich[0U] >> 6) & 0x03U;
 }
 
+unsigned char CYSFFICH::getCS() const
+{
+	return (m_fich[0U] >> 4) & 0x03U;
+}
+
 unsigned char CYSFFICH::getCM() const
 {
 	return (m_fich[0U] >> 2) & 0x03U;
+}
+
+unsigned char CYSFFICH::getBN() const
+{
+	return m_fich[0U] & 0x03U;
+}
+
+unsigned char CYSFFICH::getBT() const
+{
+	return (m_fich[1U] >> 6) & 0x03U;
 }
 
 unsigned char CYSFFICH::getFN() const
@@ -184,17 +200,90 @@ unsigned char CYSFFICH::getDT() const
 	return m_fich[2U] & 0x03U;
 }
 
-void CYSFFICH::load(const unsigned char* fich)
+unsigned char CYSFFICH::getMR() const
 {
-	assert(fich != NULL);
+	return (m_fich[2U] >> 3) & 0x03U;
+}
 
-	::memcpy(m_fich, fich, 4U);
+bool CYSFFICH::getDev() const
+{
+	return (m_fich[2U] & 0x40U) == 0x40U;
+}
+
+bool CYSFFICH::getSQL() const
+{
+	return (m_fich[3U] & 0x80U) == 0x80U;
+}
+
+unsigned char CYSFFICH::getSQ() const
+{
+	return m_fich[3U] & 0x7FU;
 }
 
 void CYSFFICH::setFI(unsigned char fi)
 {
 	m_fich[0U] &= 0x3FU;
 	m_fich[0U] |= (fi << 6) & 0xC0U;
+}
+
+void CYSFFICH::setCS(unsigned char cs)
+{
+	m_fich[0U] &= 0xCFU;
+	m_fich[0U] |= (cs << 4) & 0x30U;
+}
+
+void CYSFFICH::setFN(unsigned char fn)
+{
+	m_fich[1U] &= 0xC7U;
+	m_fich[1U] |= (fn << 3) & 0x38U;
+}
+
+void CYSFFICH::setFT(unsigned char ft)
+{
+	m_fich[1U] &= 0xF8U;
+	m_fich[1U] |= ft & 0x07U;
+}
+
+void CYSFFICH::setMR(unsigned char mr)
+{
+	m_fich[2U] &= 0xC7U;
+	m_fich[2U] |= (mr << 3) & 0x38U;
+}
+
+void CYSFFICH::setVoIP(bool on)
+{
+	if (on)
+		m_fich[2U] |= 0x04U;
+	else
+		m_fich[2U] &= 0xFBU;
+}
+
+void CYSFFICH::setDev(bool on)
+{
+	if (on)
+		m_fich[2U] |= 0x40U;
+	else
+		m_fich[2U] &= 0xBFU;
+}
+
+void CYSFFICH::setDT(unsigned char dt)
+{
+	m_fich[2U] &= 0xFCU;
+	m_fich[2U] |= dt & 0x03U;
+}
+
+void CYSFFICH::setSQL(bool on)
+{
+	if (on)
+		m_fich[3U] |= 0x80U;
+	else
+		m_fich[3U] &= 0x7FU;
+}
+
+void CYSFFICH::setSQ(unsigned char sq)
+{
+	m_fich[3U] &= 0x80U;
+	m_fich[3U] |= sq & 0x7FU;
 }
 
 void CYSFFICH::setBN(unsigned char bn)
@@ -209,14 +298,10 @@ void CYSFFICH::setBT(unsigned char bt)
 	m_fich[1U] |= (bt << 6) & 0xC0U;
 }
 
-void CYSFFICH::setFN(unsigned char fn)
+void CYSFFICH::load(const unsigned char* fich)
 {
-	m_fich[1U] &= 0xC7U;
-	m_fich[1U] |= (fn << 3) & 0x38U;
+	assert(fich != NULL);
+
+	::memcpy(m_fich, fich, 4U);
 }
 
-void CYSFFICH::setFT(unsigned char ft)
-{
-	m_fich[1U] &= 0xF8U;
-	m_fich[1U] |= ft & 0x07U;
-}
