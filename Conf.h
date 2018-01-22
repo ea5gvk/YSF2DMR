@@ -1,5 +1,6 @@
 /*
  *   Copyright (C) 2015,2016,2017 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2018 by Andy Uribe CA6JAU
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -46,32 +47,29 @@ public:
   float        getLatitude() const;
   float        getLongitude() const;
   int          getHeight() const;
-  std::string  getName() const;
+  std::string  getLocation() const;
   std::string  getDescription() const;
+  std::string  getURL() const;
+  
+  // The DMR Network section
+  bool         getDMRNetworkEnabled() const;
+  unsigned int getDMRId() const;
+  unsigned int getDMRColorCode() const;
+  std::string  getDMRNetworkAddress() const;
+  unsigned int getDMRNetworkPort() const;
+  unsigned int getDMRNetworkLocal() const;
+  std::string  getDMRNetworkPassword() const;
+  std::string  getDMRNetworkOptions() const;
+  bool         getDMRNetworkDebug() const;
+  unsigned int getDMRNetworkJitter() const;
+  bool         getDMRNetworkSlot1() const;
+  bool         getDMRNetworkSlot2() const;
 
   // The Log section
   unsigned int getLogDisplayLevel() const;
   unsigned int getLogFileLevel() const;
   std::string  getLogFilePath() const;
   std::string  getLogFileRoot() const;
-
-  // The aprs.fi section
-  bool         getAPRSEnabled() const;
-  std::string  getAPRSServer() const;
-  unsigned int getAPRSPort() const;
-  std::string  getAPRSPassword() const;
-
-  // The Network section
-  bool         getNetworkEnabled() const;
-  unsigned int getNetworkPort() const;
-  std::string  getNetworkHosts() const;
-  unsigned int getNetworkReloadTime() const;
-  std::string  getNetworkParrotAddress() const;
-  unsigned int getNetworkParrotPort() const;
-  std::string  getNetworkStartup() const;
-  unsigned int getNetworkInactivityTimeout() const;
-  bool         getNetworkRevert() const;
-  bool         getNetworkDebug() const;
 
 private:
   std::string  m_file;
@@ -89,29 +87,28 @@ private:
   float        m_latitude;
   float        m_longitude;
   int          m_height;
-  std::string  m_name;
+  std::string  m_location;
   std::string  m_description;
+  std::string  m_url;
+  
+  bool         m_dmrNetworkEnabled;
+  unsigned int m_dmrId;
+  unsigned int m_dmrColorCode;
+  std::string  m_dmrNetworkAddress;
+  unsigned int m_dmrNetworkPort;
+  unsigned int m_dmrNetworkLocal;
+  std::string  m_dmrNetworkPassword;
+  std::string  m_dmrNetworkOptions;
+  bool         m_dmrNetworkDebug;
+  unsigned int m_dmrNetworkJitter;
+  bool         m_dmrNetworkSlot1;
+  bool         m_dmrNetworkSlot2;
 
   unsigned int m_logDisplayLevel;
   unsigned int m_logFileLevel;
   std::string  m_logFilePath;
   std::string  m_logFileRoot;
 
-  bool         m_aprsEnabled;
-  std::string  m_aprsServer;
-  unsigned int m_aprsPort;
-  std::string  m_aprsPassword;
-
-  bool         m_networkEnabled;
-  unsigned int m_networkPort;
-  std::string  m_networkHosts;
-  unsigned int m_networkReloadTime;
-  std::string  m_networkParrotAddress;
-  unsigned int m_networkParrotPort;
-  std::string  m_networkStartup;
-  unsigned int m_networkInactivityTimeout;
-  bool         m_networkRevert;
-  bool         m_networkDebug;
 };
 
 #endif

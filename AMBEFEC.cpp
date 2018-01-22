@@ -1,6 +1,7 @@
 /*
  *   Copyright (C) 2010,2014,2016 by Jonathan Naylor G4KLX
  *   Copyright (C) 2016 Mathias Weyland, HB9FRV
+ *   Copyright (C) 2018 by Andy Uribe CA6JAU
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -18,8 +19,11 @@
  */
 
 #include "Golay24128.h"
+#include "YSFConvolution.h"
+#include "CRC.h"
 #include "Hamming.h"
 #include "AMBEFEC.h"
+#include "Utils.h"
 
 #include "Log.h"
 
@@ -466,7 +470,43 @@ const unsigned int IMBE_INTERLEAVE[] = {
 	5, 10, 17, 22, 29, 34, 41, 46, 53, 58, 65, 70, 77, 82, 89, 94, 101, 106, 113, 118, 125, 130, 137, 142
 };
 
-CAMBEFEC::CAMBEFEC()
+// YSF
+const unsigned int INTERLEAVE_TABLE_26_4[] = {
+	0U, 4U,  8U, 12U, 16U, 20U, 24U, 28U, 32U, 36U, 40U, 44U, 48U, 52U, 56U, 60U, 64U, 68U, 72U, 76U, 80U, 84U, 88U, 92U, 96U, 100U,
+	1U, 5U,  9U, 13U, 17U, 21U, 25U, 29U, 33U, 37U, 41U, 45U, 49U, 53U, 57U, 61U, 65U, 69U, 73U, 77U, 81U, 85U, 89U, 93U, 97U, 101U,
+	2U, 6U, 10U, 14U, 18U, 22U, 26U, 30U, 34U, 38U, 42U, 46U, 50U, 54U, 58U, 62U, 66U, 70U, 74U, 78U, 82U, 86U, 90U, 94U, 98U, 102U,
+	3U, 7U, 11U, 15U, 19U, 23U, 27U, 31U, 35U, 39U, 43U, 47U, 51U, 55U, 59U, 63U, 67U, 71U, 75U, 79U, 83U, 87U, 91U, 95U, 99U, 103U};
+
+const unsigned char WHITENING_DATA[] = {0x93U, 0xD7U, 0x51U, 0x21U, 0x9CU, 0x2FU, 0x6CU, 0xD0U, 0xEFU, 0x0FU,
+										0xF8U, 0x3DU, 0xF1U, 0x73U, 0x20U, 0x94U, 0xEDU, 0x1EU, 0x7CU, 0xD8U};
+										
+const unsigned int INTERLEAVE_TABLE_5_20[] = {
+	0U, 40U,  80U, 120U, 160U,
+	2U, 42U,  82U, 122U, 162U,
+	4U, 44U,  84U, 124U, 164U,
+	6U, 46U,  86U, 126U, 166U,
+	8U, 48U,  88U, 128U, 168U,
+	10U, 50U,  90U, 130U, 170U,
+	12U, 52U,  92U, 132U, 172U,
+	14U, 54U,  94U, 134U, 174U,
+	16U, 56U,  96U, 136U, 176U,
+	18U, 58U,  98U, 138U, 178U,
+	20U, 60U, 100U, 140U, 180U,
+	22U, 62U, 102U, 142U, 182U,
+	24U, 64U, 104U, 144U, 184U,
+	26U, 66U, 106U, 146U, 186U,
+	28U, 68U, 108U, 148U, 188U,
+	30U, 70U, 110U, 150U, 190U,
+	32U, 72U, 112U, 152U, 192U,
+	34U, 74U, 114U, 154U, 194U,
+	36U, 76U, 116U, 156U, 196U,
+	38U, 78U, 118U, 158U, 198U};
+
+CAMBEFEC::CAMBEFEC() :
+m_ysfN(0U),
+m_dmrN(0U),
+m_YSF(5000U, "DMR2YSF"),
+m_DMR(5000U, "YSF2DMR")
 {
 }
 
@@ -474,7 +514,7 @@ CAMBEFEC::~CAMBEFEC()
 {
 }
 
-unsigned int CAMBEFEC::regenerateDMR(unsigned char* bytes) const
+unsigned int CAMBEFEC::regenerateDMR(unsigned char* bytes)
 {
 	assert(bytes != NULL);
 
@@ -564,7 +604,7 @@ unsigned int CAMBEFEC::regenerateDMR(unsigned char* bytes) const
 	return errors;
 }
 
-unsigned int CAMBEFEC::regenerateDStar(unsigned char* bytes) const
+unsigned int CAMBEFEC::regenerateDStar(unsigned char* bytes)
 {
 	assert(bytes != NULL);
 
@@ -596,7 +636,7 @@ unsigned int CAMBEFEC::regenerateDStar(unsigned char* bytes) const
 	return errors;
 }
 
-unsigned int CAMBEFEC::regenerateYSFDN(unsigned char* bytes) const
+unsigned int CAMBEFEC::regenerateYSFDN(unsigned char* bytes)
 {
 	assert(bytes != NULL);
 
@@ -638,7 +678,7 @@ unsigned int CAMBEFEC::regenerateYSFDN(unsigned char* bytes) const
 	return errors;
 }
 
-unsigned int CAMBEFEC::regenerateIMBE(unsigned char* bytes) const
+unsigned int CAMBEFEC::regenerateIMBE(unsigned char* bytes)
 {
 	assert(bytes != NULL);
 
@@ -772,7 +812,7 @@ unsigned int CAMBEFEC::regenerateIMBE(unsigned char* bytes) const
 	return errors;
 }
 
-unsigned int CAMBEFEC::regenerate(unsigned int& a, unsigned int& b, unsigned int& c, bool b23) const
+unsigned int CAMBEFEC::regenerate(unsigned int& a, unsigned int& b, unsigned int& c, bool b23)
 {
 	unsigned int old_a = a;
 	unsigned int old_b = b;
@@ -792,6 +832,8 @@ unsigned int CAMBEFEC::regenerate(unsigned int& a, unsigned int& b, unsigned int
 	unsigned int datb = CGolay24128::decode24128(b);
 
 	unsigned int new_b = CGolay24128::encode24128(datb);
+	
+	putAMBE2YSF(data, datb, c);
 
 	new_b ^= p;
 
@@ -826,4 +868,226 @@ unsigned int CAMBEFEC::regenerate(unsigned int& a, unsigned int& b, unsigned int
 	b = new_b;
 
 	return errsA + errsB;
+}
+
+unsigned int CAMBEFEC::getDMR(unsigned char* data)
+{	
+	unsigned char tmp[9];
+
+	if (m_dmrN >= 3U) {
+		printf("DMR Blocks: %d\n", m_dmrN);
+		
+		m_DMR.getData(data, 9U);
+		m_DMR.getData(tmp, 9U);
+		::memcpy(data + 9U, tmp, 4U);
+		data[13U] = tmp[4U] & 0xF0;
+		data[19U] = tmp[4U] & 0x0F;
+		::memcpy(data + 20U, tmp + 5U, 4U);
+		m_DMR.getData(data + 24U, 9U);
+		m_dmrN -= 3U;
+		return 1U;
+	}
+	else
+		return 0U;
+}
+
+unsigned int CAMBEFEC::getYSF(unsigned char* data)
+{
+	data += YSF_SYNC_LENGTH_BYTES + YSF_FICH_LENGTH_BYTES;
+	unsigned char* data_tmp = data;
+
+	if (m_ysfN >= 5U) {
+	
+		printf("YSF Blocks: %d\n", m_ysfN);
+	
+		data += 5U;
+		m_YSF.getData(data, 13U);
+		data += 18U;
+		m_YSF.getData(data, 13U);
+		data += 18U;
+		m_YSF.getData(data, 13U);
+		data += 18U;
+		m_YSF.getData(data, 13U);
+		data += 18U;
+		m_YSF.getData(data, 13U);	
+		m_ysfN -= 5U;
+		
+		// Add YSF dummy data
+		unsigned char output[23U];
+		::memset(output, 0x20, 23U);
+
+		for (unsigned int i = 0U; i < 10U; i++)
+			output[i] ^= WHITENING_DATA[i];
+
+		CCRC::addCCITT16(output, 12U);
+		output[12U] = 0x00U;
+
+		unsigned char convolved[25U];
+		CYSFConvolution conv;
+		conv.start();
+		conv.encode(output, convolved, 100U);
+
+		unsigned char bytes[25U];
+		unsigned int j = 0U;
+		for (unsigned int i = 0U; i < 100U; i++) {
+			unsigned int n = INTERLEAVE_TABLE_5_20[i];
+
+			bool s0 = READ_BIT(convolved, j) != 0U;
+			j++;
+
+			bool s1 = READ_BIT(convolved, j) != 0U;
+			j++;
+
+			WRITE_BIT(bytes, n, s0);
+
+			n++;
+			WRITE_BIT(bytes, n, s1);
+		}
+
+		unsigned char* p1 = data_tmp;
+		unsigned char* p2 = bytes;
+		for (unsigned int i = 0U; i < 5U; i++) {
+			::memcpy(p1, p2, 5U);
+			p1 += 18U; p2 += 5U;
+		}
+		return 1U;
+	}
+	else
+		return 0U;
+}
+
+void CAMBEFEC::putAMBE2YSF(unsigned int a, unsigned int b, unsigned int c)
+{
+	unsigned char vch[13];
+	unsigned char ysfFrame[13];
+	::memset(vch, 0, 13);
+	::memset(ysfFrame, 0, 13);
+		
+	for (unsigned int i = 0U; i < 12U; i++) {
+		bool s = (a << (20U + i)) & 0x80000000;
+		WRITE_BIT(vch, 3*i + 0U, s);
+		WRITE_BIT(vch, 3*i + 1U, s);
+		WRITE_BIT(vch, 3*i + 2U, s);
+	}
+	
+	for (unsigned int i = 0U; i < 12U; i++) {
+		bool s = (b << (20U + i)) & 0x80000000;
+		WRITE_BIT(vch, 3*(i + 12U) + 0U, s);
+		WRITE_BIT(vch, 3*(i + 12U) + 1U, s);
+		WRITE_BIT(vch, 3*(i + 12U) + 2U, s);
+	}
+	
+	for (unsigned int i = 0U; i < 3U; i++) {
+		bool s = (c << (7U + i)) & 0x80000000;
+		WRITE_BIT(vch, 3*(i + 24U) + 0U, s);
+		WRITE_BIT(vch, 3*(i + 24U) + 1U, s);
+		WRITE_BIT(vch, 3*(i + 24U) + 2U, s);
+	}
+
+	for (unsigned int i = 0U; i < 22U; i++) {
+		bool s = (c << (10U + i)) & 0x80000000;
+		WRITE_BIT(vch, i + 81U, s);
+	}
+	
+	WRITE_BIT(vch, 103U, 0U);
+
+	// Scramble
+	for (unsigned int i = 0U; i < 13U; i++)
+		vch[i] ^= WHITENING_DATA[i];
+
+	// Interleave
+	for (unsigned int i = 0U; i < 104U; i++) {
+		unsigned int n = INTERLEAVE_TABLE_26_4[i];
+		bool s = READ_BIT(vch, i);
+		WRITE_BIT(ysfFrame, n, s);
+	}
+
+	m_YSF.addData(ysfFrame, 13U);
+	//CUtils::dump(1U, "VCH V/D type 2:", ysfFrame, 13U);
+	
+	m_ysfN += 1U;
+}
+
+void CAMBEFEC::regenerateYSFVDT2(unsigned char* data)
+{
+	assert(data != NULL);
+
+	data += YSF_SYNC_LENGTH_BYTES + YSF_FICH_LENGTH_BYTES;
+
+	unsigned int offset = 40U; // DCH(0)
+
+	// We have a total of 5 VCH sections, iterate through each
+	for (unsigned int j = 0U; j < 5U; j++, offset += 144U) {
+
+		unsigned char vch[13U];
+		unsigned int dat_a = 0;
+		unsigned int dat_b = 0;
+		unsigned int dat_c = 0;
+
+		// Deinterleave
+		for (unsigned int i = 0U; i < 104U; i++) {
+			unsigned int n = INTERLEAVE_TABLE_26_4[i];
+			bool s = READ_BIT(data, offset + n);
+			WRITE_BIT(vch, i, s);
+		}
+
+		// "Un-whiten" (descramble)
+		for (unsigned int i = 0U; i < 13U; i++)
+			vch[i] ^= WHITENING_DATA[i];
+	
+		for (unsigned int i = 0U; i < 12U; i++) {
+			dat_a <<= 1U;
+			if (READ_BIT(vch, 3U*i + 1U))
+				dat_a |= 0x01U;;
+		}
+		
+		for (unsigned int i = 0U; i < 12U; i++) {
+			dat_b <<= 1U;
+			if (READ_BIT(vch, 3U*(i + 12U) + 1U))
+				dat_b |= 0x01U;;
+		}
+		
+		for (unsigned int i = 0U; i < 3U; i++) {
+			dat_c <<= 1U;
+			if (READ_BIT(vch, 3U*(i + 24U) + 1U))
+				dat_c |= 0x01U;;
+		}
+
+		for (unsigned int i = 0U; i < 22U; i++) {
+			dat_c <<= 1U;
+			if (READ_BIT(vch, i + 81U))
+				dat_c |= 0x01U;;
+		}
+		
+		putAMBE2DMR(dat_a, dat_b, dat_c);
+	}
+}
+
+void CAMBEFEC::putAMBE2DMR(unsigned int dat_a, unsigned int dat_b, unsigned int dat_c)
+{	
+	unsigned char v_dmr[9];
+
+	unsigned int a = CGolay24128::encode24128(dat_a);
+	unsigned int p = PRNG_TABLE[dat_a];
+	unsigned int b = CGolay24128::encode24128(dat_b);
+	b ^= p;
+	
+	unsigned int MASK = 0x800000U;
+	for (unsigned int i = 0U; i < 24U; i++) {
+		unsigned int aPos = DMR_A_TABLE[i];
+		unsigned int bPos = DMR_B_TABLE[i];
+		unsigned int cPos = DMR_C_TABLE[i];
+
+		WRITE_BIT(v_dmr, aPos, a & MASK);
+		WRITE_BIT(v_dmr, bPos, b & MASK);
+		WRITE_BIT(v_dmr, cPos, dat_c & MASK);
+
+		MASK >>= 1;
+	}
+	
+	m_DMR.addData(v_dmr, 9U);
+
+	//CUtils::dump(1U, "DMR Voice:", v_dmr, 9U);
+	
+	m_dmrN += 1U;
 }
