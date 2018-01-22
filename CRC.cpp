@@ -1,5 +1,6 @@
 /*
  *   Copyright (C) 2015,2016 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2018 by Andy Uribe CA6JAU
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -238,3 +239,16 @@ unsigned char CCRC::crc8(const unsigned char *in, unsigned int length)
 
 	return crc;
 }
+
+unsigned char CCRC::addCRC(const unsigned char* in, unsigned int length)
+{
+	assert(in != NULL);
+
+	unsigned char crc = 0U;
+
+	for (unsigned int i = 0U; i < length; i++)
+		crc += in[i];
+
+	return crc;
+}
+

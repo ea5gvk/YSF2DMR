@@ -919,7 +919,7 @@ unsigned int CAMBEFEC::getYSF(unsigned char* data)
 		for (unsigned int i = 0U; i < 10U; i++)
 			output[i] ^= WHITENING_DATA[i];
 
-		CCRC::addCCITT16(output, 12U);
+		CCRC::addCCITT162(output, 12U);
 		output[12U] = 0x00U;
 
 		unsigned char convolved[25U];
