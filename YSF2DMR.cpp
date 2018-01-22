@@ -45,13 +45,7 @@ const unsigned char ysfNF[] = {
 0x36,0x4A,0x41,0x55,0x20,0x20,0x20,0x20,0x41,0x4C,0x4C,0x20,0x20,0x20,0x20,0x20,
 0x20,0x20,0x46};
 
-CAMBEFEC test;
-
-#define COLOR_CODE	1U
-#define SRC_ID		7306007U
-#define DST_ID		9990U
-#define FLCO_LC		FLCO_USER_USER
-//#define FLCO_LC		FLCO_GROUP
+CAMBEFEC conv;
 
 int main(int argc, char** argv)
 {
@@ -193,6 +187,12 @@ int CYSF2DMR::run()
 		return 1;
 	}
 
+	FLCO dmrflco;
+	if (m_dmrpc)
+		dmrflco = FLCO_USER_USER;
+	else
+		dmrflco = FLCO_GROUP;
+
 	CTimer networkWatchdog(100U, 0U, 1500U);
 
 	CStopWatch stopWatch;
@@ -230,22 +230,22 @@ int CYSF2DMR::run()
 
 					LogMessage("RX YSF: FI:%d CS:%d DEV:%d MR:%d SQL:%d SQ:%d DT:%d FN:%d FT:%d", fi, cs, dev, mr, sql, sq, dt, fn, ft);
 
-					test.regenerateYSFVDT2(buffer + 35U);
+					conv.regenerateYSFVDT2(buffer + 35U);
 				}
 
 			}
 		}
 
 		if (dmrWatch.elapsed() > 55U)
-			if(test.getDMR(m_dmrFrame)) {
+			if(conv.getDMR(m_dmrFrame)) {
 				CDMREMB emb;
 				CDMRData rx_dmrdata;
 				unsigned int n_dmr = dmr_cnt % 6U;
 
 				rx_dmrdata.setSlotNo(2U);
-				rx_dmrdata.setSrcId(SRC_ID);
-				rx_dmrdata.setDstId(DST_ID);
-				rx_dmrdata.setFLCO(FLCO_LC);
+				rx_dmrdata.setSrcId(m_srcid);
+				rx_dmrdata.setDstId(m_dstid);
+				rx_dmrdata.setFLCO(dmrflco);
 				rx_dmrdata.setN(n_dmr);
 				rx_dmrdata.setSeqNo(dmr_cnt);
 				rx_dmrdata.setBER(0U);
@@ -256,7 +256,7 @@ int CYSF2DMR::run()
 					// Add sync
 					CSync::addDMRAudioSync(m_dmrFrame, 0U);
 					// Prepare Full LC data
-					CDMRLC dmrLC = CDMRLC(FLCO_LC, SRC_ID, DST_ID);
+					CDMRLC dmrLC = CDMRLC(dmrflco, m_srcid, m_dstid);
 					// Configure the Embedded LC
 					m_EmbeddedLC.setLC(dmrLC);
 				}
@@ -265,7 +265,7 @@ int CYSF2DMR::run()
 					// Generate the Embedded LC
 					unsigned char lcss = m_EmbeddedLC.getData(m_dmrFrame, n_dmr);
 					// Generate the EMB
-					emb.setColorCode(COLOR_CODE);
+					emb.setColorCode(m_colorcode);
 					emb.setLCSS(lcss);
 					emb.getData(m_dmrFrame);
 				}
@@ -298,14 +298,14 @@ int CYSF2DMR::run()
 				if(DataType == DT_VOICE_SYNC || DataType == DT_VOICE) {
 					unsigned char dmr_frame[50];
 					tx_dmrdata.getData(dmr_frame);
-					test.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
+					conv.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
 				}
 			}
 			else {
 				if(DataType == DT_VOICE_SYNC || DataType == DT_VOICE) {
 					unsigned char dmr_frame[50];
 					tx_dmrdata.getData(dmr_frame);
-					test.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
+					conv.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
 				}
 
 				networkWatchdog.clock(ms);
@@ -318,7 +318,7 @@ int CYSF2DMR::run()
 		}
 		
 		if (ysfWatch.elapsed() > 90U)
-			if(test.getYSF(m_ysfFrame + 35U)) {
+			if(conv.getYSF(m_ysfFrame + 35U)) {
 				CYSFFICH fich;
 
 				// Add the YSF Sync
@@ -370,7 +370,6 @@ bool CYSF2DMR::createDMRNetwork()
 	std::string address  = m_conf.getDMRNetworkAddress();
 	unsigned int port    = m_conf.getDMRNetworkPort();
 	unsigned int local   = m_conf.getDMRNetworkLocal();
-	unsigned int id      = m_conf.getDMRId();
 	std::string password = m_conf.getDMRNetworkPassword();
 	bool debug           = m_conf.getDMRNetworkDebug();
 	unsigned int jitter  = m_conf.getDMRNetworkJitter();
@@ -378,8 +377,16 @@ bool CYSF2DMR::createDMRNetwork()
 	bool slot2           = m_conf.getDMRNetworkSlot2();
 	bool m_duplex        = false;
 	HW_TYPE hwType       = HWT_MMDVM;
+
+	m_srcid = m_conf.getDMRId();
+	m_colorcode = m_conf.getDMRColorCode();
+	m_dstid = m_conf.getDMRDstId();
+	m_dmrpc = m_conf.getDMRPC();
 	
 	LogMessage("DMR Network Parameters");
+	LogMessage("    ID: %u", m_srcid);
+	LogMessage("    ColorCode: %u", m_colorcode);
+	LogMessage("    DstID: %s%u", m_dmrpc ? "" : "TG", m_dstid);
 	LogMessage("    Address: %s", address.c_str());
 	LogMessage("    Port: %u", port);
 	if (local > 0U)
@@ -390,7 +397,7 @@ bool CYSF2DMR::createDMRNetwork()
 	LogMessage("    Slot 1: %s", slot1 ? "enabled" : "disabled");
 	LogMessage("    Slot 2: %s", slot2 ? "enabled" : "disabled");
 
-	m_dmrNetwork = new CDMRNetwork(address, port, local, id, password, m_duplex, VERSION, debug, slot1, slot2, hwType, jitter);
+	m_dmrNetwork = new CDMRNetwork(address, port, local, m_srcid, password, m_duplex, VERSION, debug, slot1, slot2, hwType, jitter);
 
 	std::string options = m_conf.getDMRNetworkOptions();
 	if (!options.empty()) {

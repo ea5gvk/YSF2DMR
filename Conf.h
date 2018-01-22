@@ -53,6 +53,8 @@ public:
   // The DMR Network section
   unsigned int getDMRId() const;
   unsigned int getDMRColorCode() const;
+  unsigned int getDMRDstId() const;
+  bool         getDMRPC() const;
   std::string  getDMRNetworkAddress() const;
   unsigned int getDMRNetworkPort() const;
   unsigned int getDMRNetworkLocal() const;
@@ -90,6 +92,8 @@ private:
   
   unsigned int m_dmrId;
   unsigned int m_dmrColorCode;
+  unsigned int m_dmrDstId;
+  bool         m_dmrPC;
   std::string  m_dmrNetworkAddress;
   unsigned int m_dmrNetworkPort;
   unsigned int m_dmrNetworkLocal;

@@ -53,6 +53,10 @@ private:
 	std::string    m_callsign;
 	CConf          m_conf;
 	CDMRNetwork*   m_dmrNetwork;
+	unsigned int   m_srcid;
+	unsigned int   m_colorcode;
+	unsigned int   m_dstid;
+	bool           m_dmrpc;
 	unsigned char  m_ysfFrame[200U];
 	unsigned char  m_dmrFrame[50U];
 	
