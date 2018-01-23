@@ -30,6 +30,7 @@
 #include "UDPSocket.h"
 #include "StopWatch.h"
 #include "Version.h"
+#include "YSFPayload.h"
 #include "Network.h"
 #include "YSFFICH.h"
 #include "Thread.h"
@@ -53,6 +54,7 @@ private:
 	std::string    m_callsign;
 	CConf          m_conf;
 	CDMRNetwork*   m_dmrNetwork;
+	CNetwork*      m_ysfNetwork;
 	CModeConv      m_conv;
 	unsigned int   m_srcid;
 	unsigned int   m_colorcode;

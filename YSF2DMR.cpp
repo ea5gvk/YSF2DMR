@@ -40,11 +40,6 @@ const char* DEFAULT_INI_FILE = "/etc/YSF2DMR.ini";
 #include <cstring>
 #include <clocale>
 
-const unsigned char ysfNF[] = {
-0x59,0x53,0x46,0x44,0x43,0x41,0x36,0x4A,0x41,0x55,0x20,0x20,0x20,0x20,0x43,0x41,
-0x36,0x4A,0x41,0x55,0x20,0x20,0x20,0x20,0x41,0x4C,0x4C,0x20,0x20,0x20,0x20,0x20,
-0x20,0x20,0x46};
-
 int main(int argc, char** argv)
 {
 	const char* iniFile = DEFAULT_INI_FILE;
@@ -79,7 +74,6 @@ m_dmrNetwork(NULL)
 {
 	::memset(m_ysfFrame, 0U, 200U);
 	::memset(m_dmrFrame, 0U, 50U);
-	::memcpy(m_ysfFrame, ysfNF, 35U);
 }
 
 CYSF2DMR::~CYSF2DMR()
@@ -168,12 +162,12 @@ int CYSF2DMR::run()
 	std::string myAddress = m_conf.getMyAddress();
 	unsigned int myPort   = m_conf.getMyPort();
 
-	CNetwork rptNetwork(myAddress, myPort, m_callsign, debug);
-	rptNetwork.setDestination(rptAddress, rptPort);
+	m_ysfNetwork = new CNetwork(myAddress, myPort, m_callsign, debug);
+	m_ysfNetwork->setDestination(rptAddress, rptPort);
 
-	ret = rptNetwork.open();
+	ret = m_ysfNetwork->open();
 	if (!ret) {
-		::LogError("Cannot open the repeater network port");
+		::LogError("Cannot open the YSF network port");
 		::LogFinalise();
 		return 1;
 	}
@@ -192,6 +186,7 @@ int CYSF2DMR::run()
 		dmrflco = FLCO_GROUP;
 
 	CTimer networkWatchdog(100U, 0U, 1500U);
+	CTimer pollTimer(1000U, 5U);
 
 	CStopWatch stopWatch;
 	CStopWatch ysfWatch;
@@ -210,7 +205,7 @@ int CYSF2DMR::run()
 		CDMRData tx_dmrdata;
 		unsigned int ms = stopWatch.elapsed();
 
-		while (rptNetwork.read(buffer) > 0U) {
+		while (m_ysfNetwork->read(buffer) > 0U) {
 			if (::memcmp(buffer, "YSFD", 4U) == 0) {
 				CYSFFICH fich;
 
@@ -226,9 +221,22 @@ int CYSF2DMR::run()
 					unsigned char fn = fich.getFN();
 					unsigned char ft = fich.getFT();
 
+					CYSFPayload ysfPayload;
+
 					LogMessage("RX YSF: FI:%d CS:%d DEV:%d MR:%d SQL:%d SQ:%d DT:%d FN:%d FT:%d", fi, cs, dev, mr, sql, sq, dt, fn, ft);
 
-					m_conv.putYSF(buffer + 35U);
+					if (fi == YSF_FI_HEADER) {
+						if (ysfPayload.processHeaderData(buffer + 35U)) {
+							LogMessage("Received YSF Header: Src: %s Dst: %s", ysfPayload.getSource(), ysfPayload.getDest());
+						}
+					} else if (fi == YSF_FI_TERMINATOR) {
+						LogMessage("Received YSF Terminator");
+					} else if (fi == YSF_FI_COMMUNICATIONS) {
+						if (dt == YSF_DT_VD_MODE2)
+							m_conv.putYSF(buffer + 35U);
+						else if  (dt == YSF_DT_VD_MODE1)
+							LogMessage("YSF Mode V/D Type 1 not supported yet");
+					}
 				}
 
 			}
@@ -319,6 +327,12 @@ int CYSF2DMR::run()
 			if(m_conv.getYSF(m_ysfFrame + 35U)) {
 				CYSFFICH fich;
 
+				::memset(m_ysfFrame, 0x20, 35U);
+				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
+				::memcpy(m_ysfFrame + 4U, m_callsign.c_str(), m_callsign.length());
+				::memcpy(m_ysfFrame + 14U, m_callsign.c_str(), m_callsign.length());
+				::memcpy(m_ysfFrame + 24U, "ALL       ", YSF_CALLSIGN_LENGTH);
+
 				// Add the YSF Sync
 				CSync::addYSFSync(m_ysfFrame + 35U);
 				
@@ -338,7 +352,7 @@ int CYSF2DMR::run()
 				m_ysfFrame[34U] = (ysf_cnt & 0x7FU) << 1;
 
 				// Send data to MMDVMHost
-				rptNetwork.write(m_ysfFrame);
+				m_ysfNetwork->write(m_ysfFrame);
 				
 				ysf_cnt++;
 				ysfWatch.start();
@@ -346,17 +360,24 @@ int CYSF2DMR::run()
 
 		stopWatch.start();
 
-		rptNetwork.clock(ms);
+		m_ysfNetwork->clock(ms);
 		m_dmrNetwork->clock(ms);
+		
+		pollTimer.clock(ms);
+		if (pollTimer.isRunning() && pollTimer.hasExpired()) {
+			m_ysfNetwork->writePoll();
+			pollTimer.start();
+		}
 
 		if (ms < 5U)
 			CThread::sleep(5U);
 	}
 
-	rptNetwork.close();
+	m_ysfNetwork->close();
 	m_dmrNetwork->close();
 
 	delete m_dmrNetwork;
+	delete m_ysfNetwork;
 
 	::LogFinalise();
 
