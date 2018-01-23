@@ -20,32 +20,23 @@
 #include "YSFDefines.h"
 #include "RingBuffer.h"
 
-#if !defined(AMBEFEC_H)
-#define	AMBEFEC_H
+#if !defined(MODECONV_H)
+#define MODECONV_H
 
-class CAMBEFEC {
+class CModeConv {
 public:
-	CAMBEFEC();
-	~CAMBEFEC();
+	CModeConv();
+	~CModeConv();
 
-	unsigned int regenerateDMR(unsigned char* bytes);
+	void putDMR(unsigned char* bytes);
+	void putYSF(unsigned char* bytes);
 
-	unsigned int regenerateDStar(unsigned char* bytes);
-
-	unsigned int regenerateYSFDN(unsigned char* bytes);
-
-	void regenerateYSFVDT2(unsigned char* bytes);
-	
-	unsigned int regenerateIMBE(unsigned char* bytes);
-	
 	unsigned int getYSF(unsigned char* bytes);
-
 	unsigned int getDMR(unsigned char* bytes);
 
 private:
-	unsigned int regenerate(unsigned int& a, unsigned int& b, unsigned int& c, bool b23);
-	void putAMBE2YSF(unsigned int a, unsigned int b, unsigned int c);
-	void putAMBE2DMR(unsigned int a, unsigned int b, unsigned int c);
+	void putAMBE2YSF(unsigned int a, unsigned int b, unsigned int dat_c);
+	void putAMBE2DMR(unsigned int dat_a, unsigned int dat_b, unsigned int dat_c);
 	int m_ysfN;
 	int m_dmrN;
 	CRingBuffer<unsigned char> m_YSF;

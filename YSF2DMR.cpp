@@ -45,8 +45,6 @@ const unsigned char ysfNF[] = {
 0x36,0x4A,0x41,0x55,0x20,0x20,0x20,0x20,0x41,0x4C,0x4C,0x20,0x20,0x20,0x20,0x20,
 0x20,0x20,0x46};
 
-CAMBEFEC conv;
-
 int main(int argc, char** argv)
 {
 	const char* iniFile = DEFAULT_INI_FILE;
@@ -230,14 +228,14 @@ int CYSF2DMR::run()
 
 					LogMessage("RX YSF: FI:%d CS:%d DEV:%d MR:%d SQL:%d SQ:%d DT:%d FN:%d FT:%d", fi, cs, dev, mr, sql, sq, dt, fn, ft);
 
-					conv.regenerateYSFVDT2(buffer + 35U);
+					m_conv.putYSF(buffer + 35U);
 				}
 
 			}
 		}
 
 		if (dmrWatch.elapsed() > 55U)
-			if(conv.getDMR(m_dmrFrame)) {
+			if(m_conv.getDMR(m_dmrFrame)) {
 				CDMREMB emb;
 				CDMRData rx_dmrdata;
 				unsigned int n_dmr = dmr_cnt % 6U;
@@ -298,14 +296,14 @@ int CYSF2DMR::run()
 				if(DataType == DT_VOICE_SYNC || DataType == DT_VOICE) {
 					unsigned char dmr_frame[50];
 					tx_dmrdata.getData(dmr_frame);
-					conv.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
+					m_conv.putDMR(dmr_frame); // Add DMR frame for YSF conversion
 				}
 			}
 			else {
 				if(DataType == DT_VOICE_SYNC || DataType == DT_VOICE) {
 					unsigned char dmr_frame[50];
 					tx_dmrdata.getData(dmr_frame);
-					conv.regenerateDMR(dmr_frame); // Add DMR frame for YSF conversion
+					m_conv.putDMR(dmr_frame); // Add DMR frame for YSF conversion
 				}
 
 				networkWatchdog.clock(ms);
@@ -318,7 +316,7 @@ int CYSF2DMR::run()
 		}
 		
 		if (ysfWatch.elapsed() > 90U)
-			if(conv.getYSF(m_ysfFrame + 35U)) {
+			if(m_conv.getYSF(m_ysfFrame + 35U)) {
 				CYSFFICH fich;
 
 				// Add the YSF Sync

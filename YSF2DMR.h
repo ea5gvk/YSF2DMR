@@ -20,7 +20,7 @@
 #if !defined(YSF2DMR_H)
 #define	YSF2DMR_H
 
-#include "AMBEFEC.h"
+#include "ModeConv.h"
 #include "JitterBuffer.h"
 #include "DMRNetwork.h"
 #include "DMREmbeddedData.h"
@@ -53,6 +53,7 @@ private:
 	std::string    m_callsign;
 	CConf          m_conf;
 	CDMRNetwork*   m_dmrNetwork;
+	CModeConv      m_conv;
 	unsigned int   m_srcid;
 	unsigned int   m_colorcode;
 	unsigned int   m_dstid;
