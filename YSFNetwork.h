@@ -16,8 +16,8 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
-#ifndef	Network_H
-#define	Network_H
+#if !defined(YSFNETWORK_H)
+#define	YSFNETWORK_H
 
 #include "YSFDefines.h"
 #include "UDPSocket.h"
@@ -26,11 +26,11 @@
 #include <cstdint>
 #include <string>
 
-class CNetwork {
+class CYSFNetwork {
 public:
-	CNetwork(const std::string& address, unsigned int port, const std::string& callsign, bool debug);
-	CNetwork(unsigned int port, const std::string& callsign, bool debug);
-	~CNetwork();
+	CYSFNetwork(const std::string& address, unsigned int port, const std::string& callsign, bool debug);
+	CYSFNetwork(unsigned int port, const std::string& callsign, bool debug);
+	~CYSFNetwork();
 
 	bool open();
 

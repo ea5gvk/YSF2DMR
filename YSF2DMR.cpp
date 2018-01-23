@@ -162,7 +162,7 @@ int CYSF2DMR::run()
 	std::string myAddress = m_conf.getMyAddress();
 	unsigned int myPort   = m_conf.getMyPort();
 
-	m_ysfNetwork = new CNetwork(myAddress, myPort, m_callsign, debug);
+	m_ysfNetwork = new CYSFNetwork(myAddress, myPort, m_callsign, debug);
 	m_ysfNetwork->setDestination(rptAddress, rptPort);
 
 	ret = m_ysfNetwork->open();
