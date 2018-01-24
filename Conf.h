@@ -31,7 +31,7 @@ public:
 
   bool read();
 
-  // The General section
+  // The YSF Network section
   std::string  getCallsign() const;
   std::string  getDstAddress() const;
   unsigned int getDstPort() const;
@@ -61,6 +61,10 @@ public:
   std::string  getDMRNetworkOptions() const;
   bool         getDMRNetworkDebug() const;
   unsigned int getDMRNetworkJitter() const;
+
+  // The DMR Id section
+  std::string  getDMRIdLookupFile() const;
+  unsigned int getDMRIdLookupTime() const;
 
   // The Log section
   unsigned int getLogDisplayLevel() const;
@@ -97,6 +101,9 @@ private:
   std::string  m_dmrNetworkOptions;
   bool         m_dmrNetworkDebug;
   unsigned int m_dmrNetworkJitter;
+
+  std::string  m_dmrIdLookupFile;
+  unsigned int m_dmrIdLookupTime;
 
   unsigned int m_logDisplayLevel;
   unsigned int m_logFileLevel;

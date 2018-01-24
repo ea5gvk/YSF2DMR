@@ -32,6 +32,7 @@ enum SECTION {
   SECTION_INFO,
   SECTION_YSF_NETWORK,
   SECTION_DMR_NETWORK,
+  SECTION_DMRID_LOOKUP,
   SECTION_LOG
 };
 
@@ -62,6 +63,8 @@ m_dmrNetworkPassword(),
 m_dmrNetworkOptions(),
 m_dmrNetworkDebug(false),
 m_dmrNetworkJitter(300U),
+m_dmrIdLookupFile(),
+m_dmrIdLookupTime(0U),
 m_logDisplayLevel(0U),
 m_logFileLevel(0U),
 m_logFilePath(),
@@ -91,10 +94,12 @@ bool CConf::read()
     if (buffer[0U] == '[') {
       if (::strncmp(buffer, "[Info]", 6U) == 0)
 		  section = SECTION_INFO;
-	  else if (::strncmp(buffer, "[YSF Network]", 9U) == 0)
+	  else if (::strncmp(buffer, "[YSF Network]", 13U) == 0)
         section = SECTION_YSF_NETWORK;
 	  else if (::strncmp(buffer, "[DMR Network]", 13U) == 0)
 		  section = SECTION_DMR_NETWORK;
+	  else if (::strncmp(buffer, "[DMR Id Lookup]", 15U) == 0)
+		  section = SECTION_DMRID_LOOKUP;
 	  else if (::strncmp(buffer, "[Log]", 5U) == 0)
 		  section = SECTION_LOG;
 	  else
@@ -164,6 +169,11 @@ bool CConf::read()
 			m_dmrNetworkDebug = ::atoi(value) == 1;
 		else if (::strcmp(key, "Jitter") == 0)
 			m_dmrNetworkJitter = (unsigned int)::atoi(value);
+	} else if (section == SECTION_DMRID_LOOKUP) {
+		if (::strcmp(key, "File") == 0)
+			m_dmrIdLookupFile = value;
+		else if (::strcmp(key, "Time") == 0)
+			m_dmrIdLookupTime = (unsigned int)::atoi(value);
 	} else if (section == SECTION_LOG) {
 		if (::strcmp(key, "FilePath") == 0)
 			m_logFilePath = value;
@@ -304,6 +314,16 @@ bool CConf::getDMRNetworkDebug() const
 unsigned int CConf::getDMRNetworkJitter() const
 {
 	return m_dmrNetworkJitter;
+}
+
+std::string CConf::getDMRIdLookupFile() const
+{
+	return m_dmrIdLookupFile;
+}
+
+unsigned int CConf::getDMRIdLookupTime() const
+{
+	return m_dmrIdLookupTime;
 }
 
 unsigned int CConf::getLogDisplayLevel() const

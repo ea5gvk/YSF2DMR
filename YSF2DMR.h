@@ -27,6 +27,7 @@
 #include "DMRLC.h"
 #include "DMRFullLC.h"
 #include "DMREMB.h"
+#include "DMRLookup.h"
 #include "UDPSocket.h"
 #include "StopWatch.h"
 #include "Version.h"
@@ -55,11 +56,14 @@ private:
 	CConf          m_conf;
 	CDMRNetwork*   m_dmrNetwork;
 	CYSFNetwork*   m_ysfNetwork;
+	CDMRLookup*    m_lookup;
 	CModeConv      m_conv;
-	unsigned int   m_srcid;
 	unsigned int   m_colorcode;
+	unsigned int   m_srcid;
 	unsigned int   m_dstid;
 	bool           m_dmrpc;
+	std::string    m_netSrc;
+	std::string    m_netDst;
 	unsigned char  m_ysfFrame[200U];
 	unsigned char  m_dmrFrame[50U];
 	
