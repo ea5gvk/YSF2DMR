@@ -28,10 +28,8 @@ public:
 
 	bool processHeaderData(unsigned char* bytes);
 
-	bool processVDMode1Data(unsigned char* bytes, unsigned char fn, bool gateway = false);
-	bool processVDMode2Data(unsigned char* bytes, unsigned char fn, bool gateway = false);
-
-	bool processDataFRModeData(unsigned char* bytes, unsigned char fn, bool gateway = false);
+	void writeVDMode2Data(unsigned char* data, const unsigned char* dt);
+	bool readVDMode2Data(const unsigned char* data, unsigned char* dt);
 
 	void writeHeader(unsigned char* data, const unsigned char* csd1, const unsigned char* csd2);
 

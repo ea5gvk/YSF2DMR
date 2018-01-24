@@ -462,28 +462,6 @@ const unsigned int INTERLEAVE_TABLE_26_4[] = {
 const unsigned char WHITENING_DATA[] = {0x93U, 0xD7U, 0x51U, 0x21U, 0x9CU, 0x2FU, 0x6CU, 0xD0U, 0xEFU, 0x0FU,
 										0xF8U, 0x3DU, 0xF1U, 0x73U, 0x20U, 0x94U, 0xEDU, 0x1EU, 0x7CU, 0xD8U};
 
-const unsigned int INTERLEAVE_TABLE_5_20[] = {
-	0U, 40U,  80U, 120U, 160U,
-	2U, 42U,  82U, 122U, 162U,
-	4U, 44U,  84U, 124U, 164U,
-	6U, 46U,  86U, 126U, 166U,
-	8U, 48U,  88U, 128U, 168U,
-	10U, 50U,  90U, 130U, 170U,
-	12U, 52U,  92U, 132U, 172U,
-	14U, 54U,  94U, 134U, 174U,
-	16U, 56U,  96U, 136U, 176U,
-	18U, 58U,  98U, 138U, 178U,
-	20U, 60U, 100U, 140U, 180U,
-	22U, 62U, 102U, 142U, 182U,
-	24U, 64U, 104U, 144U, 184U,
-	26U, 66U, 106U, 146U, 186U,
-	28U, 68U, 108U, 148U, 188U,
-	30U, 70U, 110U, 150U, 190U,
-	32U, 72U, 112U, 152U, 192U,
-	34U, 74U, 114U, 154U, 194U,
-	36U, 76U, 116U, 156U, 196U,
-	38U, 78U, 118U, 158U, 198U};
-
 CModeConv::CModeConv() :
 m_ysfN(0U),
 m_dmrN(0U),
@@ -717,7 +695,6 @@ unsigned int CModeConv::getDMR(unsigned char* data)
 unsigned int CModeConv::getYSF(unsigned char* data)
 {
 	data += YSF_SYNC_LENGTH_BYTES + YSF_FICH_LENGTH_BYTES;
-	unsigned char* data_tmp = data;
 
 	if (m_ysfN >= 5U) {
 		data += 5U;
@@ -731,45 +708,7 @@ unsigned int CModeConv::getYSF(unsigned char* data)
 		data += 18U;
 		m_YSF.getData(data, 13U);
 		m_ysfN -= 5U;
-		
-		// Add YSF dummy data
-		unsigned char output[23U];
-		::memset(output, 0x20, 23U);
 
-		for (unsigned int i = 0U; i < 10U; i++)
-			output[i] ^= WHITENING_DATA[i];
-
-		CCRC::addCCITT162(output, 12U);
-		output[12U] = 0x00U;
-
-		unsigned char convolved[25U];
-		CYSFConvolution conv;
-		conv.start();
-		conv.encode(output, convolved, 100U);
-
-		unsigned char bytes[25U];
-		unsigned int j = 0U;
-		for (unsigned int i = 0U; i < 100U; i++) {
-			unsigned int n = INTERLEAVE_TABLE_5_20[i];
-
-			bool s0 = READ_BIT(convolved, j) != 0U;
-			j++;
-
-			bool s1 = READ_BIT(convolved, j) != 0U;
-			j++;
-
-			WRITE_BIT(bytes, n, s0);
-
-			n++;
-			WRITE_BIT(bytes, n, s1);
-		}
-
-		unsigned char* p1 = data_tmp;
-		unsigned char* p2 = bytes;
-		for (unsigned int i = 0U; i < 5U; i++) {
-			::memcpy(p1, p2, 5U);
-			p1 += 18U; p2 += 5U;
-		}
 		return 1U;
 	}
 	else

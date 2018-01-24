@@ -29,6 +29,10 @@
 #include <pwd.h>
 #endif
 
+// Example of DT1 and DT2 from my radio, GPS info + more data, I need to investigate this...
+const unsigned char dt1_temp[] = {0x34, 0x22, 0x62, 0x5F, 0x24, 0x53, 0x39, 0x54, 0x38, 0x38};
+const unsigned char dt2_temp[] = {0x52, 0x65, 0x2A, 0x3E, 0x6C, 0x22, 0x30, 0x20, 0x03, 0x8B};
+
 #if defined(_WIN32) || defined(_WIN64)
 const char* DEFAULT_INI_FILE = "YSF2DMR.ini";
 #else
@@ -326,6 +330,8 @@ int CYSF2DMR::run()
 		if (ysfWatch.elapsed() > 90U)
 			if(m_conv.getYSF(m_ysfFrame + 35U)) {
 				CYSFFICH fich;
+				CYSFPayload ysfPayload;
+				unsigned int fn = ysf_cnt % 8U;
 
 				::memset(m_ysfFrame, 0x20, 35U);
 				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
@@ -336,10 +342,30 @@ int CYSF2DMR::run()
 				// Add the YSF Sync
 				CSync::addYSFSync(m_ysfFrame + 35U);
 				
+				switch (fn) {
+					case 0:
+						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, (const unsigned char*)"**********");
+						break;
+					case 1:
+						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, (const unsigned char*)"TEST1     ");
+						break;
+					case 2:
+						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, (const unsigned char*)"TEST2     ");
+						break;
+					case 6:
+						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, dt1_temp);
+						break;
+					case 7:
+						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, dt2_temp);
+						break;
+					default:
+						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, (const unsigned char*)"          ");
+				}
+				
 				// Set the FICH
 				fich.setFI(1U);
 				fich.setCS(2U);
-				fich.setFN(ysf_cnt % 8U);
+				fich.setFN(fn);
 				fich.setFT(7U);
 				fich.setDev(0U);
 				fich.setMR(2U);
