@@ -29,8 +29,8 @@ const int BUFFER_SIZE = 500;
 
 enum SECTION {
   SECTION_NONE,
-  SECTION_GENERAL,
   SECTION_INFO,
+  SECTION_YSF_NETWORK,
   SECTION_DMR_NETWORK,
   SECTION_LOG
 };
@@ -38,10 +38,10 @@ enum SECTION {
 CConf::CConf(const std::string& file) :
 m_file(file),
 m_callsign(),
-m_rptAddress(),
-m_rptPort(0U),
-m_myAddress(),
-m_myPort(0U),
+m_dstAddress(),
+m_dstPort(0U),
+m_localAddress(),
+m_localPort(0U),
 m_daemon(false),
 m_rxFrequency(0U),
 m_txFrequency(0U),
@@ -53,7 +53,6 @@ m_location(),
 m_description(),
 m_url(),
 m_dmrId(0U),
-m_dmrColorCode(2U),
 m_dmrDstId(9990U),
 m_dmrPC(true),
 m_dmrNetworkAddress(),
@@ -63,8 +62,6 @@ m_dmrNetworkPassword(),
 m_dmrNetworkOptions(),
 m_dmrNetworkDebug(false),
 m_dmrNetworkJitter(300U),
-m_dmrNetworkSlot1(true),
-m_dmrNetworkSlot2(true),
 m_logDisplayLevel(0U),
 m_logFileLevel(0U),
 m_logFilePath(),
@@ -92,10 +89,10 @@ bool CConf::read()
       continue;
 
     if (buffer[0U] == '[') {
-      if (::strncmp(buffer, "[General]", 9U) == 0)
-        section = SECTION_GENERAL;
-	  else if (::strncmp(buffer, "[Info]", 6U) == 0)
+      if (::strncmp(buffer, "[Info]", 6U) == 0)
 		  section = SECTION_INFO;
+	  else if (::strncmp(buffer, "[YSF Network]", 9U) == 0)
+        section = SECTION_YSF_NETWORK;
 	  else if (::strncmp(buffer, "[DMR Network]", 13U) == 0)
 		  section = SECTION_DMR_NETWORK;
 	  else if (::strncmp(buffer, "[Log]", 5U) == 0)
@@ -111,20 +108,20 @@ bool CConf::read()
       continue;
 
     char* value = ::strtok(NULL, "\r\n");
-	if (section == SECTION_GENERAL) {
+	if (section == SECTION_YSF_NETWORK) {
 		if (::strcmp(key, "Callsign") == 0) {
 			// Convert the callsign to upper case
 			for (unsigned int i = 0U; value[i] != 0; i++)
 				value[i] = ::toupper(value[i]);
 			m_callsign = value;
-		} else if (::strcmp(key, "RptAddress") == 0)
-			m_rptAddress = value;
-		else if (::strcmp(key, "RptPort") == 0)
-			m_rptPort = (unsigned int)::atoi(value);
+		} else if (::strcmp(key, "DstAddress") == 0)
+			m_dstAddress = value;
+		else if (::strcmp(key, "DstPort") == 0)
+			m_dstPort = (unsigned int)::atoi(value);
 		else if (::strcmp(key, "LocalAddress") == 0)
-			m_myAddress = value;
+			m_localAddress = value;
 		else if (::strcmp(key, "LocalPort") == 0)
-			m_myPort = (unsigned int)::atoi(value);
+			m_localPort = (unsigned int)::atoi(value);
 		else if (::strcmp(key, "Daemon") == 0)
 			m_daemon = ::atoi(value) == 1;
 	} else if (section == SECTION_INFO) {
@@ -149,11 +146,9 @@ bool CConf::read()
 	} else if (section == SECTION_DMR_NETWORK) {
 		if (::strcmp(key, "Id") == 0)
 			m_dmrId = (unsigned int)::atoi(value);
-		else if (::strcmp(key, "ColorCode") == 0)
-			m_dmrColorCode = (unsigned int)::atoi(value);
-		else if (::strcmp(key, "DstId") == 0)
+		else if (::strcmp(key, "StartupDstId") == 0)
 			m_dmrDstId = (unsigned int)::atoi(value);
-		else if (::strcmp(key, "PrivateCall") == 0)
+		else if (::strcmp(key, "StartupPC") == 0)
 			m_dmrPC = ::atoi(value) == 1;
 		else if (::strcmp(key, "Address") == 0)
 			m_dmrNetworkAddress = value;
@@ -169,10 +164,6 @@ bool CConf::read()
 			m_dmrNetworkDebug = ::atoi(value) == 1;
 		else if (::strcmp(key, "Jitter") == 0)
 			m_dmrNetworkJitter = (unsigned int)::atoi(value);
-		else if (::strcmp(key, "Slot1") == 0)
-			m_dmrNetworkSlot1 = ::atoi(value) == 1;
-		else if (::strcmp(key, "Slot2") == 0)
-			m_dmrNetworkSlot2 = ::atoi(value) == 1;
 	} else if (section == SECTION_LOG) {
 		if (::strcmp(key, "FilePath") == 0)
 			m_logFilePath = value;
@@ -195,24 +186,24 @@ std::string CConf::getCallsign() const
   return m_callsign;
 }
 
-std::string CConf::getRptAddress() const
+std::string CConf::getDstAddress() const
 {
-	return m_rptAddress;
+	return m_dstAddress;
 }
 
-unsigned int CConf::getRptPort() const
+unsigned int CConf::getDstPort() const
 {
-	return m_rptPort;
+	return m_dstPort;
 }
 
-std::string CConf::getMyAddress() const
+std::string CConf::getLocalAddress() const
 {
-	return m_myAddress;
+	return m_localAddress;
 }
 
-unsigned int CConf::getMyPort() const
+unsigned int CConf::getLocalPort() const
 {
-	return m_myPort;
+	return m_localPort;
 }
 
 bool CConf::getDaemon() const
@@ -270,11 +261,6 @@ unsigned int CConf::getDMRId() const
 	return m_dmrId;
 }
 
-unsigned int CConf::getDMRColorCode() const
-{
-	return m_dmrColorCode;
-}
-
 unsigned int CConf::getDMRDstId() const
 {
 	return m_dmrDstId;
@@ -318,16 +304,6 @@ bool CConf::getDMRNetworkDebug() const
 unsigned int CConf::getDMRNetworkJitter() const
 {
 	return m_dmrNetworkJitter;
-}
-
-bool CConf::getDMRNetworkSlot1() const
-{
-	return m_dmrNetworkSlot1;
-}
-
-bool CConf::getDMRNetworkSlot2() const
-{
-	return m_dmrNetworkSlot2;
 }
 
 unsigned int CConf::getLogDisplayLevel() const

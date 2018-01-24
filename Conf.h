@@ -33,10 +33,10 @@ public:
 
   // The General section
   std::string  getCallsign() const;
-  std::string  getRptAddress() const;
-  unsigned int getRptPort() const;
-  std::string  getMyAddress() const;
-  unsigned int getMyPort() const;
+  std::string  getDstAddress() const;
+  unsigned int getDstPort() const;
+  std::string  getLocalAddress() const;
+  unsigned int getLocalPort() const;
   bool         getDaemon() const;
 
   // The Info section
@@ -52,7 +52,6 @@ public:
   
   // The DMR Network section
   unsigned int getDMRId() const;
-  unsigned int getDMRColorCode() const;
   unsigned int getDMRDstId() const;
   bool         getDMRPC() const;
   std::string  getDMRNetworkAddress() const;
@@ -62,8 +61,6 @@ public:
   std::string  getDMRNetworkOptions() const;
   bool         getDMRNetworkDebug() const;
   unsigned int getDMRNetworkJitter() const;
-  bool         getDMRNetworkSlot1() const;
-  bool         getDMRNetworkSlot2() const;
 
   // The Log section
   unsigned int getLogDisplayLevel() const;
@@ -74,10 +71,10 @@ public:
 private:
   std::string  m_file;
   std::string  m_callsign;
-  std::string  m_rptAddress;
-  unsigned int m_rptPort;
-  std::string  m_myAddress;
-  unsigned int m_myPort;
+  std::string  m_dstAddress;
+  unsigned int m_dstPort;
+  std::string  m_localAddress;
+  unsigned int m_localPort;
   bool         m_daemon;
 
   unsigned int m_rxFrequency;
@@ -91,7 +88,6 @@ private:
   std::string  m_url;
   
   unsigned int m_dmrId;
-  unsigned int m_dmrColorCode;
   unsigned int m_dmrDstId;
   bool         m_dmrPC;
   std::string  m_dmrNetworkAddress;
@@ -101,8 +97,6 @@ private:
   std::string  m_dmrNetworkOptions;
   bool         m_dmrNetworkDebug;
   unsigned int m_dmrNetworkJitter;
-  bool         m_dmrNetworkSlot1;
-  bool         m_dmrNetworkSlot2;
 
   unsigned int m_logDisplayLevel;
   unsigned int m_logFileLevel;

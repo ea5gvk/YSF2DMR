@@ -161,13 +161,13 @@ int CYSF2DMR::run()
 	m_callsign = m_conf.getCallsign();
 
 	bool debug            = m_conf.getDMRNetworkDebug();
-	in_addr rptAddress    = CUDPSocket::lookup(m_conf.getRptAddress());
-	unsigned int rptPort  = m_conf.getRptPort();
-	std::string myAddress = m_conf.getMyAddress();
-	unsigned int myPort   = m_conf.getMyPort();
+	in_addr dstAddress    = CUDPSocket::lookup(m_conf.getDstAddress());
+	unsigned int dstPort  = m_conf.getDstPort();
+	std::string localAddress = m_conf.getLocalAddress();
+	unsigned int localPort   = m_conf.getLocalPort();
 
-	m_ysfNetwork = new CYSFNetwork(myAddress, myPort, m_callsign, debug);
-	m_ysfNetwork->setDestination(rptAddress, rptPort);
+	m_ysfNetwork = new CYSFNetwork(localAddress, localPort, m_callsign, debug);
+	m_ysfNetwork->setDestination(dstAddress, dstPort);
 
 	ret = m_ysfNetwork->open();
 	if (!ret) {
@@ -418,19 +418,18 @@ bool CYSF2DMR::createDMRNetwork()
 	std::string password = m_conf.getDMRNetworkPassword();
 	bool debug           = m_conf.getDMRNetworkDebug();
 	unsigned int jitter  = m_conf.getDMRNetworkJitter();
-	bool slot1           = m_conf.getDMRNetworkSlot1();
-	bool slot2           = m_conf.getDMRNetworkSlot2();
+	bool slot1           = false;
+	bool slot2           = true;
 	bool m_duplex        = false;
 	HW_TYPE hwType       = HWT_MMDVM;
 
 	m_srcid = m_conf.getDMRId();
-	m_colorcode = m_conf.getDMRColorCode();
+	m_colorcode = 1U;
 	m_dstid = m_conf.getDMRDstId();
 	m_dmrpc = m_conf.getDMRPC();
 	
 	LogMessage("DMR Network Parameters");
 	LogMessage("    ID: %u", m_srcid);
-	LogMessage("    ColorCode: %u", m_colorcode);
 	LogMessage("    DstID: %s%u", m_dmrpc ? "" : "TG", m_dstid);
 	LogMessage("    Address: %s", address.c_str());
 	LogMessage("    Port: %u", port);
@@ -453,7 +452,6 @@ bool CYSF2DMR::createDMRNetwork()
 	unsigned int rxFrequency = m_conf.getRxFrequency();
 	unsigned int txFrequency = m_conf.getTxFrequency();
 	unsigned int power       = m_conf.getPower();
-	unsigned int colorCode   = m_conf.getDMRColorCode();
 	float latitude           = m_conf.getLatitude();
 	float longitude          = m_conf.getLongitude();
 	int height               = m_conf.getHeight();
@@ -473,7 +471,7 @@ bool CYSF2DMR::createDMRNetwork()
 	LogMessage("    Description: \"%s\"", description.c_str());
 	LogMessage("    URL: \"%s\"", url.c_str());
 
-	m_dmrNetwork->setConfig(m_callsign, rxFrequency, txFrequency, power, colorCode, latitude, longitude, height, location, description, url);
+	m_dmrNetwork->setConfig(m_callsign, rxFrequency, txFrequency, power, m_colorcode, latitude, longitude, height, location, description, url);
 
 	bool ret = m_dmrNetwork->open();
 	if (!ret) {
