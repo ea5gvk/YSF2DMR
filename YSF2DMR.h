@@ -60,6 +60,7 @@ private:
 	CModeConv      m_conv;
 	unsigned int   m_colorcode;
 	unsigned int   m_srcid;
+	unsigned int   m_defsrcid;
 	unsigned int   m_dstid;
 	bool           m_dmrpc;
 	std::string    m_netSrc;

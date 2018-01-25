@@ -34,6 +34,8 @@ public:
 
 	bool open();
 
+	std::string getCallsign();
+
 	void setDestination(const in_addr& address, unsigned int port);
 	void clearDestination();
 
@@ -49,6 +51,7 @@ public:
 	void close();
 
 private:
+	std::string                m_callsign;
 	CUDPSocket                 m_socket;
 	bool                       m_debug;
 	in_addr                    m_address;

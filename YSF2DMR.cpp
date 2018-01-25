@@ -206,7 +206,8 @@ int CYSF2DMR::run()
 	dmrWatch.start();
 	unsigned char ysf_cnt = 0;
 	unsigned char dmr_cnt = 0;
-	CDMREmbeddedData	m_EmbeddedLC;
+
+	CDMREmbeddedData m_EmbeddedLC;
 
 	LogMessage("Starting YSF2DMR-%s", VERSION);
 
@@ -259,7 +260,7 @@ int CYSF2DMR::run()
 				unsigned int n_dmr = dmr_cnt % 6U;
 
 				rx_dmrdata.setSlotNo(2U);
-				rx_dmrdata.setSrcId(m_srcid);
+				rx_dmrdata.setSrcId(m_defsrcid);
 				rx_dmrdata.setDstId(m_dstid);
 				rx_dmrdata.setFLCO(dmrflco);
 				rx_dmrdata.setN(n_dmr);
@@ -272,7 +273,7 @@ int CYSF2DMR::run()
 					// Add sync
 					CSync::addDMRAudioSync(m_dmrFrame, 0U);
 					// Prepare Full LC data
-					CDMRLC dmrLC = CDMRLC(dmrflco, m_srcid, m_dstid);
+					CDMRLC dmrLC = CDMRLC(dmrflco, m_defsrcid, m_dstid);
 					// Configure the Embedded LC
 					m_EmbeddedLC.setLC(dmrLC);
 				}
@@ -318,7 +319,11 @@ int CYSF2DMR::run()
 				if(DataType == DT_VOICE_LC_HEADER) {
 					m_netSrc = m_lookup->find(SrcId);
 					m_netDst = (netflco == FLCO_GROUP ? "TG " : "") + m_lookup->find(DstId);
+
 					LogMessage("DMR Header received from %s to %s", m_netSrc.c_str(), m_netDst.c_str());
+
+					m_netSrc.resize(YSF_CALLSIGN_LENGTH, ' ');
+					m_netDst.resize(YSF_CALLSIGN_LENGTH, ' ');
 				}
 
 				LogMessage("DMR Net recv: slotNo:%d, SrcId:%d, DstId:%d, N:%d, SeqNo:%d, DataType:%d, BER:%d, RSSI:%d", slotNo, SrcId, DstId, N, SeqNo, DataType, BER, RSSI);
@@ -348,34 +353,27 @@ int CYSF2DMR::run()
 		if (ysfWatch.elapsed() > 90U)
 			if(m_conv.getYSF(m_ysfFrame + 35U)) {
 				CYSFFICH fich;
-				unsigned char str_tmp[12];
 				CYSFPayload ysfPayload;
 
 				unsigned int fn = ysf_cnt % 8U;
 
-				// TODO: check .length()
-				::memset(m_ysfFrame, 0x20, 35U);
 				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
-				::memcpy(m_ysfFrame + 4U, m_callsign.c_str(), m_callsign.length());
-				::memcpy(m_ysfFrame + 14U, m_callsign.c_str(), m_callsign.length());
+				::memcpy(m_ysfFrame + 4U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
+				::memcpy(m_ysfFrame + 14U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
 				::memcpy(m_ysfFrame + 24U, "ALL       ", YSF_CALLSIGN_LENGTH);
 
 				// Add the YSF Sync
 				CSync::addYSFSync(m_ysfFrame + 35U);
-				
-				::memset(str_tmp, 0x20, 12U);
 
 				switch (fn) {
 					case 0:
 						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, (const unsigned char*)"**********");
 						break;
 					case 1:
-						::memcpy(str_tmp, m_netSrc.c_str(), m_netSrc.length());
-						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, str_tmp);
+						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, (const unsigned char*)m_netSrc.c_str());
 						break;
 					case 2:
-						::memcpy(str_tmp, m_netDst.c_str(), m_netDst.length());
-						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, str_tmp);
+						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, (const unsigned char*)m_netDst.c_str());
 						break;
 					case 6:
 						ysfPayload.writeVDMode2Data(m_ysfFrame + 35U, dt1_temp);
@@ -445,17 +443,25 @@ bool CYSF2DMR::createDMRNetwork()
 	unsigned int jitter  = m_conf.getDMRNetworkJitter();
 	bool slot1           = false;
 	bool slot2           = true;
-	bool duplex        = false;
+	bool duplex          = false;
 	HW_TYPE hwType       = HWT_MMDVM;
 
 	m_srcid = m_conf.getDMRId();
 	m_colorcode = 1U;
 	m_dstid = m_conf.getDMRDstId();
 	m_dmrpc = m_conf.getDMRPC();
-	
+
+	if (m_srcid > 99999999U)
+		m_defsrcid = m_srcid / 100U;
+	else if (m_srcid > 9999999U)
+		m_defsrcid = m_srcid / 10U;
+	else
+		m_defsrcid = m_srcid;
+
 	LogMessage("DMR Network Parameters");
 	LogMessage("    ID: %u", m_srcid);
-	LogMessage("    DstID: %s%u", m_dmrpc ? "" : "TG", m_dstid);
+	LogMessage("    Default SrcID: %u", m_defsrcid);
+	LogMessage("    Startup DstID: %s%u", m_dmrpc ? "" : "TG", m_dstid);
 	LogMessage("    Address: %s", address.c_str());
 	LogMessage("    Port: %u", port);
 	if (local > 0U)
@@ -463,8 +469,6 @@ bool CYSF2DMR::createDMRNetwork()
 	else
 		LogMessage("    Local: random");
 	LogMessage("    Jitter: %ums", jitter);
-	LogMessage("    Slot 1: %s", slot1 ? "enabled" : "disabled");
-	LogMessage("    Slot 2: %s", slot2 ? "enabled" : "disabled");
 
 	m_dmrNetwork = new CDMRNetwork(address, port, local, m_srcid, password, duplex, VERSION, debug, slot1, slot2, hwType, jitter);
 

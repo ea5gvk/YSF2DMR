@@ -41,12 +41,12 @@ m_buffer(1000U, "YSF Network Buffer")
 	m_unlink = new unsigned char[14U];
 	::memcpy(m_unlink + 0U, "YSFU", 4U);
 
-	std::string node = callsign;
-	node.resize(YSF_CALLSIGN_LENGTH, ' ');
+	m_callsign = callsign;
+	m_callsign.resize(YSF_CALLSIGN_LENGTH, ' ');
 
 	for (unsigned int i = 0U; i < YSF_CALLSIGN_LENGTH; i++) {
-		m_poll[i + 4U] = node.at(i);
-		m_unlink[i + 4U] = node.at(i);
+		m_poll[i + 4U]   = m_callsign.at(i);
+		m_unlink[i + 4U] = m_callsign.at(i);
 	}
 }
 
@@ -65,18 +65,23 @@ m_buffer(1000U, "YSF Network Buffer")
 	m_unlink = new unsigned char[14U];
 	::memcpy(m_unlink + 0U, "YSFU", 4U);
 
-	std::string node = callsign;
-	node.resize(YSF_CALLSIGN_LENGTH, ' ');
+	m_callsign = callsign;
+	m_callsign.resize(YSF_CALLSIGN_LENGTH, ' ');
 
 	for (unsigned int i = 0U; i < YSF_CALLSIGN_LENGTH; i++) {
-		m_poll[i + 4U]   = node.at(i);
-		m_unlink[i + 4U] = node.at(i);
+		m_poll[i + 4U]   = m_callsign.at(i);
+		m_unlink[i + 4U] = m_callsign.at(i);
 	}
 }
 
 CYSFNetwork::~CYSFNetwork()
 {
 	delete[] m_poll;
+}
+
+std::string CYSFNetwork::getCallsign()
+{
+	return m_callsign;
 }
 
 bool CYSFNetwork::open()
