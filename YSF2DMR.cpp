@@ -252,7 +252,6 @@ int CYSF2DMR::run()
 							LogMessage("YSF Mode V/D Type 1 not supported yet");
 					}
 				}
-
 			}
 		}
 
