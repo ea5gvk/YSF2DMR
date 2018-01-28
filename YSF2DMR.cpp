@@ -241,7 +241,6 @@ int CYSF2DMR::run()
 							std::string ysfDst = ysfPayload.getDest();
 							LogMessage("Received YSF Header: Src: %s Dst: %s", ysfSrc.c_str(), ysfDst.c_str());
 							m_srcid = findYSFID(ysfSrc);
-							LogMessage("DMR DstID: %s %u", m_dmrpc ? "" : "TG", m_dstid);
 							m_conv.putYSFHeader();
 						}
 					} else if (fi == YSF_FI_TERMINATOR) {
@@ -469,17 +468,79 @@ int CYSF2DMR::run()
 			unsigned int ysfFrameType = m_conv.getYSF(m_ysfFrame + 35U);
 
 			if(ysfFrameType == TAG_HEADER) {
-				//LogMessage("Gen YSF Header");
 				ysf_cnt = 0U;
+
+				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
+				::memcpy(m_ysfFrame + 4U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
+				::memcpy(m_ysfFrame + 14U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
+				::memcpy(m_ysfFrame + 24U, "ALL       ", YSF_CALLSIGN_LENGTH);
+				m_ysfFrame[34U] = 0U; // Net frame counter
+
+				CSync::addYSFSync(m_ysfFrame + 35U);
+
+				// Set the FICH
+				CYSFFICH fich;
+				fich.setFI(YSF_FI_HEADER);
+				fich.setCS(2U);
+				fich.setFN(0U);
+				fich.setFT(7U);
+				fich.setDev(0U);
+				fich.setMR(2U);
+				fich.setDT(YSF_DT_VD_MODE2);
+				fich.setSQL(0U);
+				fich.setSQ(0U);
+				fich.encode(m_ysfFrame + 35U);
+
+				unsigned char csd1[20U], csd2[20U];
+				memset(csd1, '*', YSF_CALLSIGN_LENGTH);
+				memcpy(csd1 + YSF_CALLSIGN_LENGTH, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
+				memset(csd2, ' ', YSF_CALLSIGN_LENGTH + YSF_CALLSIGN_LENGTH);
+
+				CYSFPayload payload;
+				payload.writeHeader(m_ysfFrame + 35U, csd1, csd2);
+
+				m_ysfNetwork->write(m_ysfFrame);
+				
+				ysf_cnt++;
+				ysfWatch.start();
 			}
 			else if (ysfFrameType == TAG_EOT) {
-				//LogMessage("Gen YSF EOT: %u", ysf_cnt % 8U);
+				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
+				::memcpy(m_ysfFrame + 4U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
+				::memcpy(m_ysfFrame + 14U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
+				::memcpy(m_ysfFrame + 24U, "ALL       ", YSF_CALLSIGN_LENGTH);
+				m_ysfFrame[34U] = ysf_cnt; // Net frame counter
+
+				CSync::addYSFSync(m_ysfFrame + 35U);
+
+				// Set the FICH
+				CYSFFICH fich;
+				fich.setFI(YSF_FI_TERMINATOR);
+				fich.setCS(2U);
+				fich.setFN(0U);
+				fich.setFT(7U);
+				fich.setDev(0U);
+				fich.setMR(2U);
+				fich.setDT(YSF_DT_VD_MODE2);
+				fich.setSQL(0U);
+				fich.setSQ(0U);
+				fich.encode(m_ysfFrame + 35U);
+
+				unsigned char csd1[20U], csd2[20U];
+				memset(csd1, '*', YSF_CALLSIGN_LENGTH);
+				memcpy(csd1 + YSF_CALLSIGN_LENGTH, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
+				memset(csd2, ' ', YSF_CALLSIGN_LENGTH + YSF_CALLSIGN_LENGTH);
+
+				CYSFPayload payload;
+				payload.writeHeader(m_ysfFrame + 35U, csd1, csd2);
+
+				m_ysfNetwork->write(m_ysfFrame);
 			}
 			else if (ysfFrameType == TAG_DATA) {
 				CYSFFICH fich;
 				CYSFPayload ysfPayload;
 
-				unsigned int fn = ysf_cnt % 8U;
+				unsigned int fn = (ysf_cnt - 1U) % 8U;
 
 				::memcpy(m_ysfFrame + 0U, "YSFD", 4U);
 				::memcpy(m_ysfFrame + 4U, m_ysfNetwork->getCallsign().c_str(), YSF_CALLSIGN_LENGTH);
@@ -510,12 +571,12 @@ int CYSF2DMR::run()
 				}
 				
 				// Set the FICH
-				fich.setFI(1U);
+				fich.setFI(YSF_FI_COMMUNICATIONS);
 				fich.setCS(2U);
 				fich.setFN(fn);
 				fich.setFT(7U);
 				fich.setDev(0U);
-				fich.setMR(2U);
+				fich.setMR(YSF_MR_BUSY);
 				fich.setDT(YSF_DT_VD_MODE2);
 				fich.setSQL(0U);
 				fich.setSQ(0U);
@@ -569,10 +630,10 @@ unsigned int CYSF2DMR::findYSFID(std::string cs)
 
 	if (id == 0) {
 		id = m_defsrcid;
-		LogMessage("Not DMR ID found, using default ID: %u", id);
+		LogMessage("Not DMR ID found, using default ID: %u, DstID: %s %u", id, m_dmrpc ? "" : "TG", m_dstid);
 	}
 	else
-		LogMessage("DMR ID of %s: %u", cstrim.c_str(), id);
+		LogMessage("DMR ID of %s: %u, DstID: %s %u", cstrim.c_str(), id, m_dmrpc ? "" : "TG", m_dstid);
 
 	return id;
 }
