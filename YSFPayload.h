@@ -36,8 +36,8 @@ public:
 	void writeDataFRModeData1(const unsigned char* dt, unsigned char* data);
 	void writeDataFRModeData2(const unsigned char* dt, unsigned char* data);
 
-	unsigned char* getSource();
-	unsigned char* getDest();
+	std::string getSource();
+	std::string getDest();
 
 	void setUplink(const std::string& callsign);
 	void setDownlink(const std::string& callsign);

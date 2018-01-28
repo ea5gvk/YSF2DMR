@@ -451,14 +451,28 @@ void CYSFPayload::setDownlink(const std::string& callsign)
 		m_downlink[i] = downlink.at(i);
 }
 
-unsigned char* CYSFPayload::getSource()
+std::string CYSFPayload::getSource()
 {
-	return m_source;
+	std::string tmp;
+
+	if (m_dest)
+		tmp.assign((const char *)m_source, YSF_CALLSIGN_LENGTH);
+	else
+		tmp = "";
+
+	return tmp;
 }
 
-unsigned char* CYSFPayload::getDest()
+std::string CYSFPayload::getDest()
 {
-	return m_dest;
+	std::string tmp;
+
+	if (m_dest)
+		tmp.assign((const char *)m_dest, YSF_CALLSIGN_LENGTH);
+	else
+		tmp = "";
+
+	return tmp;
 }
 
 void CYSFPayload::reset()

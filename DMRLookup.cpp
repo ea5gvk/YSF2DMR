@@ -1,5 +1,6 @@
 /*
 *   Copyright (C) 2016,2017 by Jonathan Naylor G4KLX
+*   Copyright (C) 2018 by Andy Uribe CA6JAU
 *
 *   This program is free software; you can redistribute it and/or modify
 *   it under the terms of the GNU General Public License as published by
@@ -30,6 +31,7 @@ CThread(),
 m_filename(filename),
 m_reloadTime(reloadTime),
 m_table(),
+m_cstable(),
 m_mutex(),
 m_stop(false)
 {
@@ -81,7 +83,7 @@ void CDMRLookup::stop()
 	wait();
 }
 
-std::string CDMRLookup::find(unsigned int id)
+std::string CDMRLookup::findCS(unsigned int id)
 {
 	std::string callsign;
 
@@ -101,6 +103,21 @@ std::string CDMRLookup::find(unsigned int id)
 	m_mutex.unlock();
 
 	return callsign;
+}
+
+unsigned int CDMRLookup::findID(std::string cs)
+{
+	unsigned int dmrID;
+
+	try {
+		dmrID = m_cstable.at(cs);
+	} catch (...) {
+		dmrID = 0U;
+	}
+
+	m_mutex.unlock();
+
+	return dmrID;
 }
 
 bool CDMRLookup::exists(unsigned int id)
@@ -126,6 +143,7 @@ bool CDMRLookup::load()
 
 	// Remove the old entries
 	m_table.clear();
+	m_cstable.clear();
 
 	char buffer[100U];
 	while (::fgets(buffer, 100U, fp) != NULL) {
@@ -141,6 +159,7 @@ bool CDMRLookup::load()
 				*p = ::toupper(*p);
 
 			m_table[id] = std::string(p2);
+			m_cstable[p2] = id;
 		}
 	}
 

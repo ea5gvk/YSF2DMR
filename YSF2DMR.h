@@ -59,6 +59,7 @@ private:
 	CDMRLookup*    m_lookup;
 	CModeConv      m_conv;
 	unsigned int   m_colorcode;
+	unsigned int   m_srcHS;
 	unsigned int   m_srcid;
 	unsigned int   m_defsrcid;
 	unsigned int   m_dstid;
@@ -69,6 +70,7 @@ private:
 	unsigned char  m_dmrFrame[50U];
 	
 	bool createDMRNetwork();
+	unsigned int findYSFID(std::string cs);
 };
 
 #endif

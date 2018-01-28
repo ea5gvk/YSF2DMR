@@ -238,7 +238,10 @@ int CYSF2DMR::run()
 
 					if (fi == YSF_FI_HEADER) {
 						if (ysfPayload.processHeaderData(buffer + 35U)) {
-							LogMessage("Received YSF Header: Src: %s Dst: %s", ysfPayload.getSource(), ysfPayload.getDest());
+							std::string ysfSrc = ysfPayload.getSource();
+							std::string ysfDst = ysfPayload.getDest();
+							LogMessage("Received YSF Header: Src: %s Dst: %s", ysfSrc.c_str(), ysfDst.c_str());
+							m_srcid = findYSFID(ysfSrc);
 						}
 					} else if (fi == YSF_FI_TERMINATOR) {
 						LogMessage("Received YSF Terminator");
@@ -260,7 +263,7 @@ int CYSF2DMR::run()
 				unsigned int n_dmr = dmr_cnt % 6U;
 
 				rx_dmrdata.setSlotNo(2U);
-				rx_dmrdata.setSrcId(m_defsrcid);
+				rx_dmrdata.setSrcId(m_srcid);
 				rx_dmrdata.setDstId(m_dstid);
 				rx_dmrdata.setFLCO(dmrflco);
 				rx_dmrdata.setN(n_dmr);
@@ -273,7 +276,7 @@ int CYSF2DMR::run()
 					// Add sync
 					CSync::addDMRAudioSync(m_dmrFrame, 0U);
 					// Prepare Full LC data
-					CDMRLC dmrLC = CDMRLC(dmrflco, m_defsrcid, m_dstid);
+					CDMRLC dmrLC = CDMRLC(dmrflco, m_srcid, m_dstid);
 					// Configure the Embedded LC
 					m_EmbeddedLC.setLC(dmrLC);
 				}
@@ -317,8 +320,8 @@ int CYSF2DMR::run()
 				}
 
 				if(DataType == DT_VOICE_LC_HEADER) {
-					m_netSrc = m_lookup->find(SrcId);
-					m_netDst = (netflco == FLCO_GROUP ? "TG " : "") + m_lookup->find(DstId);
+					m_netSrc = m_lookup->findCS(SrcId);
+					m_netDst = (netflco == FLCO_GROUP ? "TG " : "") + m_lookup->findCS(DstId);
 
 					LogMessage("DMR Header received from %s to %s", m_netSrc.c_str(), m_netDst.c_str());
 
@@ -433,6 +436,25 @@ int CYSF2DMR::run()
 	return 0;
 }
 
+unsigned int CYSF2DMR::findYSFID(std::string cs)
+{
+	size_t first = cs.find_first_not_of(' ');
+	size_t last = cs.find_last_not_of(' ');
+
+	std::string cstrim = cs.substr(first, (last - first + 1));
+
+	unsigned int id = m_lookup->findID(cstrim);
+
+	if (id == 0) {
+		id = m_defsrcid;
+		LogMessage("Not DMR ID found, using default ID: %u", id);
+	}
+	else
+		LogMessage("DMR ID of %s: %u", cstrim.c_str(), id);
+
+	return id;
+}
+
 bool CYSF2DMR::createDMRNetwork()
 {
 	std::string address  = m_conf.getDMRNetworkAddress();
@@ -446,20 +468,22 @@ bool CYSF2DMR::createDMRNetwork()
 	bool duplex          = false;
 	HW_TYPE hwType       = HWT_MMDVM;
 
-	m_srcid = m_conf.getDMRId();
+	m_srcHS = m_conf.getDMRId();
 	m_colorcode = 1U;
 	m_dstid = m_conf.getDMRDstId();
 	m_dmrpc = m_conf.getDMRPC();
 
-	if (m_srcid > 99999999U)
-		m_defsrcid = m_srcid / 100U;
-	else if (m_srcid > 9999999U)
-		m_defsrcid = m_srcid / 10U;
+	if (m_srcHS > 99999999U)
+		m_defsrcid = m_srcHS / 100U;
+	else if (m_srcHS > 9999999U)
+		m_defsrcid = m_srcHS / 10U;
 	else
-		m_defsrcid = m_srcid;
+		m_defsrcid = m_srcHS;
+
+	m_srcid = m_defsrcid;
 
 	LogMessage("DMR Network Parameters");
-	LogMessage("    ID: %u", m_srcid);
+	LogMessage("    ID: %u", m_srcHS);
 	LogMessage("    Default SrcID: %u", m_defsrcid);
 	LogMessage("    Startup DstID: %s%u", m_dmrpc ? "" : "TG", m_dstid);
 	LogMessage("    Address: %s", address.c_str());
@@ -470,7 +494,7 @@ bool CYSF2DMR::createDMRNetwork()
 		LogMessage("    Local: random");
 	LogMessage("    Jitter: %ums", jitter);
 
-	m_dmrNetwork = new CDMRNetwork(address, port, local, m_srcid, password, duplex, VERSION, debug, slot1, slot2, hwType, jitter);
+	m_dmrNetwork = new CDMRNetwork(address, port, local, m_srcHS, password, duplex, VERSION, debug, slot1, slot2, hwType, jitter);
 
 	std::string options = m_conf.getDMRNetworkOptions();
 	if (!options.empty()) {
