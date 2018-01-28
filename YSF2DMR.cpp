@@ -33,6 +33,13 @@
 const unsigned char dt1_temp[] = {0x34, 0x22, 0x62, 0x5F, 0x24, 0x53, 0x39, 0x54, 0x38, 0x38};
 const unsigned char dt2_temp[] = {0x52, 0x65, 0x2A, 0x3E, 0x6C, 0x22, 0x30, 0x20, 0x03, 0x8B};
 
+const unsigned char dmrFrameSilence[] = {0xB9U, 0xE8U, 0x81U, 0x52U, 0x61U, 0x73U, 0x00U, 0x2AU, 0x6BU, 0xB9U, 0xE8U,
+										0x81U, 0x52U, 0x60U, 0x00U, 0x00U, 0x00U, 0x00U, 0x00U, 0x01U, 0x73U, 0x00U,
+										0x2AU, 0x6BU, 0xB9U, 0xE8U, 0x81U, 0x52U, 0x61U, 0x73U, 0x00U, 0x2AU, 0x6BU};
+
+#define DMR_FRAME_PER       55U
+#define YSF_FRAME_PER       90U
+
 #if defined(_WIN32) || defined(_WIN64)
 const char* DEFAULT_INI_FILE = "YSF2DMR.ini";
 #else
@@ -74,7 +81,8 @@ int main(int argc, char** argv)
 CYSF2DMR::CYSF2DMR(const std::string& configFile) :
 m_callsign(),
 m_conf(configFile),
-m_dmrNetwork(NULL)
+m_dmrNetwork(NULL),
+m_dmrLastDT(0U)
 {
 	::memset(m_ysfFrame, 0U, 200U);
 	::memset(m_dmrFrame, 0U, 50U);
@@ -217,24 +225,15 @@ int CYSF2DMR::run()
 		unsigned int ms = stopWatch.elapsed();
 
 		while (m_ysfNetwork->read(buffer) > 0U) {
-			if (::memcmp(buffer, "YSFD", 4U) == 0) {
+			if (::memcmp(buffer, "YSFD", 4U) == 0U) {
 				CYSFFICH fich;
 
 				bool valid = fich.decode(buffer + 35U);
 				if (valid) {
 					unsigned char fi = fich.getFI();
-					unsigned char cs = fich.getCS();
-					unsigned char dev = fich.getDev();
-					unsigned char mr = fich.getMR();
-					unsigned char sql = fich.getSQL();
-					unsigned char sq = fich.getSQ();
 					unsigned char dt = fich.getDT();
-					unsigned char fn = fich.getFN();
-					unsigned char ft = fich.getFT();
 
 					CYSFPayload ysfPayload;
-
-					LogMessage("RX YSF: FI:%d CS:%d DEV:%d MR:%d SQL:%d SQ:%d DT:%d FN:%d FT:%d", fi, cs, dev, mr, sql, sq, dt, fn, ft);
 
 					if (fi == YSF_FI_HEADER) {
 						if (ysfPayload.processHeaderData(buffer + 35U)) {
@@ -242,9 +241,12 @@ int CYSF2DMR::run()
 							std::string ysfDst = ysfPayload.getDest();
 							LogMessage("Received YSF Header: Src: %s Dst: %s", ysfSrc.c_str(), ysfDst.c_str());
 							m_srcid = findYSFID(ysfSrc);
+							LogMessage("DMR DstID: %s %u", m_dmrpc ? "" : "TG", m_dstid);
+							m_conv.putYSFHeader();
 						}
 					} else if (fi == YSF_FI_TERMINATOR) {
 						LogMessage("Received YSF Terminator");
+						m_conv.putYSFEOT();
 					} else if (fi == YSF_FI_COMMUNICATIONS) {
 						if (dt == YSF_DT_VD_MODE2)
 							m_conv.putYSF(buffer + 35U);
@@ -255,11 +257,124 @@ int CYSF2DMR::run()
 			}
 		}
 
-		if (dmrWatch.elapsed() > 55U)
-			if(m_conv.getDMR(m_dmrFrame)) {
+		if (dmrWatch.elapsed() > DMR_FRAME_PER) {
+			unsigned int dmrFrameType = m_conv.getDMR(m_dmrFrame);
+
+			if(dmrFrameType == TAG_HEADER) {
+				CDMRData rx_dmrdata;
+				dmr_cnt = 0U;
+
+				rx_dmrdata.setSlotNo(2U);
+				rx_dmrdata.setSrcId(m_srcid);
+				rx_dmrdata.setDstId(m_dstid);
+				rx_dmrdata.setFLCO(dmrflco);
+				rx_dmrdata.setN(0U);
+				rx_dmrdata.setSeqNo(0U);
+				rx_dmrdata.setBER(0U);
+				rx_dmrdata.setRSSI(0U);
+				rx_dmrdata.setDataType(DT_VOICE_LC_HEADER);
+
+				// Add sync
+				CSync::addDMRDataSync(m_dmrFrame, 0);
+
+				// Add SlotType
+				CDMRSlotType slotType;
+				slotType.setColorCode(m_colorcode);
+				slotType.setDataType(DT_VOICE_LC_HEADER);
+				slotType.getData(m_dmrFrame);
+	
+				// Full LC
+				CDMRLC dmrLC = CDMRLC(dmrflco, m_srcid, m_dstid);
+				CDMRFullLC fullLC;
+				fullLC.encode(dmrLC, m_dmrFrame, DT_VOICE_LC_HEADER);
+				m_EmbeddedLC.setLC(dmrLC);
+				
+				rx_dmrdata.setData(m_dmrFrame);
+				//CUtils::dump(1U, "DMR data:", m_dmrFrame, 33U);
+
+				for (unsigned int i = 0U; i < 3U; i++) {
+					rx_dmrdata.setSeqNo(dmr_cnt);
+					m_dmrNetwork->write(rx_dmrdata);
+					dmr_cnt++;
+				}
+
+				dmrWatch.start();
+			}
+			else if(dmrFrameType == TAG_EOT) {
+				CDMRData rx_dmrdata;
+				unsigned int n_dmr = (dmr_cnt - 3U) % 6U;
+				unsigned int fill = (6U - n_dmr);
+				
+				if (n_dmr) {
+					for (unsigned int i = 0U; i < fill; i++) {
+
+						CDMREMB emb;
+						CDMRData rx_dmrdata;
+
+						rx_dmrdata.setSlotNo(2U);
+						rx_dmrdata.setSrcId(m_srcid);
+						rx_dmrdata.setDstId(m_dstid);
+						rx_dmrdata.setFLCO(dmrflco);
+						rx_dmrdata.setN(n_dmr);
+						rx_dmrdata.setSeqNo(dmr_cnt);
+						rx_dmrdata.setBER(0U);
+						rx_dmrdata.setRSSI(0U);
+						rx_dmrdata.setDataType(DT_VOICE);
+
+						::memcpy(m_dmrFrame, dmrFrameSilence, DMR_FRAME_LENGTH_BYTES);
+
+						// Generate the Embedded LC
+						unsigned char lcss = m_EmbeddedLC.getData(m_dmrFrame, n_dmr);
+
+						// Generate the EMB
+						emb.setColorCode(m_colorcode);
+						emb.setLCSS(lcss);
+						emb.getData(m_dmrFrame);
+
+						rx_dmrdata.setData(m_dmrFrame);
+				
+						//CUtils::dump(1U, "DMR data:", m_dmrFrame, 33U);
+						m_dmrNetwork->write(rx_dmrdata);
+
+						n_dmr++;
+						dmr_cnt++;
+					}
+				}
+
+				rx_dmrdata.setSlotNo(2U);
+				rx_dmrdata.setSrcId(m_srcid);
+				rx_dmrdata.setDstId(m_dstid);
+				rx_dmrdata.setFLCO(dmrflco);
+				rx_dmrdata.setN(n_dmr);
+				rx_dmrdata.setSeqNo(dmr_cnt);
+				rx_dmrdata.setBER(0U);
+				rx_dmrdata.setRSSI(0U);
+				rx_dmrdata.setDataType(DT_TERMINATOR_WITH_LC);
+
+				// Add sync
+				CSync::addDMRDataSync(m_dmrFrame, 0);
+
+				// Add SlotType
+				CDMRSlotType slotType;
+				slotType.setColorCode(m_colorcode);
+				slotType.setDataType(DT_TERMINATOR_WITH_LC);
+				slotType.getData(m_dmrFrame);
+	
+				// Full LC
+				CDMRLC dmrLC = CDMRLC(dmrflco, m_srcid, m_dstid);
+				CDMRFullLC fullLC;
+				fullLC.encode(dmrLC, m_dmrFrame, DT_TERMINATOR_WITH_LC);
+				
+				rx_dmrdata.setData(m_dmrFrame);
+				//CUtils::dump(1U, "DMR data:", m_dmrFrame, 33U);
+				m_dmrNetwork->write(rx_dmrdata);
+
+				dmrWatch.start();
+			}
+			else if(dmrFrameType == TAG_DATA) {
 				CDMREMB emb;
 				CDMRData rx_dmrdata;
-				unsigned int n_dmr = dmr_cnt % 6U;
+				unsigned int n_dmr = (dmr_cnt - 3U) % 6U;
 
 				rx_dmrdata.setSlotNo(2U);
 				rx_dmrdata.setSrcId(m_srcid);
@@ -297,38 +412,34 @@ int CYSF2DMR::run()
 				dmr_cnt++;
 				dmrWatch.start();
 			}
-		
-		while (m_dmrNetwork->read(tx_dmrdata) > 0) {
-			unsigned int slotNo = tx_dmrdata.getSlotNo();
+		}
+
+		while (m_dmrNetwork->read(tx_dmrdata) > 0U) {
 			unsigned int SrcId = tx_dmrdata.getSrcId();
 			unsigned int DstId = tx_dmrdata.getDstId();
 			FLCO netflco = tx_dmrdata.getFLCO();
-			unsigned char N = tx_dmrdata.getN();
-			unsigned char SeqNo = tx_dmrdata.getSeqNo();
 			unsigned char DataType = tx_dmrdata.getDataType();
-			unsigned char BER = tx_dmrdata.getBER();
-			unsigned char RSSI = tx_dmrdata.getRSSI();
-		
+
 			if (!tx_dmrdata.isMissing()) {
 				networkWatchdog.start();
 
 				if(DataType == DT_TERMINATOR_WITH_LC) {
 					LogMessage("DMR received end of voice transmission");
+					m_conv.putDMREOT();
 					m_dmrNetwork->reset(2U);
 					networkWatchdog.stop();
 				}
 
-				if(DataType == DT_VOICE_LC_HEADER) {
+				if((DataType == DT_VOICE_LC_HEADER) && (DataType != m_dmrLastDT)) {
 					m_netSrc = m_lookup->findCS(SrcId);
 					m_netDst = (netflco == FLCO_GROUP ? "TG " : "") + m_lookup->findCS(DstId);
 
+					m_conv.putDMRHeader();
 					LogMessage("DMR Header received from %s to %s", m_netSrc.c_str(), m_netDst.c_str());
 
 					m_netSrc.resize(YSF_CALLSIGN_LENGTH, ' ');
 					m_netDst.resize(YSF_CALLSIGN_LENGTH, ' ');
 				}
-
-				LogMessage("DMR Net recv: slotNo:%d, SrcId:%d, DstId:%d, N:%d, SeqNo:%d, DataType:%d, BER:%d, RSSI:%d", slotNo, SrcId, DstId, N, SeqNo, DataType, BER, RSSI);
 
 				if(DataType == DT_VOICE_SYNC || DataType == DT_VOICE) {
 					unsigned char dmr_frame[50];
@@ -350,10 +461,21 @@ int CYSF2DMR::run()
 					networkWatchdog.stop();
 				}
 			}
+			
+			m_dmrLastDT = DataType;
 		}
 		
-		if (ysfWatch.elapsed() > 90U)
-			if(m_conv.getYSF(m_ysfFrame + 35U)) {
+		if (ysfWatch.elapsed() > YSF_FRAME_PER) {
+			unsigned int ysfFrameType = m_conv.getYSF(m_ysfFrame + 35U);
+
+			if(ysfFrameType == TAG_HEADER) {
+				//LogMessage("Gen YSF Header");
+				ysf_cnt = 0U;
+			}
+			else if (ysfFrameType == TAG_EOT) {
+				//LogMessage("Gen YSF EOT: %u", ysf_cnt % 8U);
+			}
+			else if (ysfFrameType == TAG_DATA) {
 				CYSFFICH fich;
 				CYSFPayload ysfPayload;
 
@@ -408,6 +530,7 @@ int CYSF2DMR::run()
 				ysf_cnt++;
 				ysfWatch.start();
 			}
+		}
 
 		stopWatch.start();
 

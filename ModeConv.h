@@ -17,6 +17,7 @@
  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
+#include "Defines.h"
 #include "YSFDefines.h"
 #include "RingBuffer.h"
 
@@ -29,7 +30,12 @@ public:
 	~CModeConv();
 
 	void putDMR(unsigned char* bytes);
+	void putDMRHeader();
+	void putDMREOT();
+
 	void putYSF(unsigned char* bytes);
+	void putYSFHeader();
+	void putYSFEOT();
 
 	unsigned int getYSF(unsigned char* bytes);
 	unsigned int getDMR(unsigned char* bytes);

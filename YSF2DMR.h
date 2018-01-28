@@ -66,6 +66,7 @@ private:
 	bool           m_dmrpc;
 	std::string    m_netSrc;
 	std::string    m_netDst;
+	unsigned char  m_dmrLastDT;
 	unsigned char  m_ysfFrame[200U];
 	unsigned char  m_dmrFrame[50U];
 	

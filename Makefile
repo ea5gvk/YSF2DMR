@@ -1,7 +1,7 @@
 CC      = gcc
 CXX     = g++
-CFLAGS  = -g -O3 -Wall -std=c++0x -pthread
-LIBS    = -lm -lpthread
+CFLAGS  = -g -O3 -Wall -std=c++0x
+LIBS    = -lm
 LDFLAGS = -g
 
 OBJECTS = 	BPTC19696.o Conf.o CRC.o DMRLookup.o Golay24128.o Hamming.o Log.o ModeConv.o Mutex.o \
