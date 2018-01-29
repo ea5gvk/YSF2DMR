@@ -244,7 +244,7 @@ int CYSF2DMR::run()
 							m_conv.putYSFHeader();
 						}
 					} else if (fi == YSF_FI_TERMINATOR) {
-						LogMessage("Received YSF Terminator");
+						LogMessage("YSF received end of voice transmission");
 						m_conv.putYSFEOT();
 					} else if (fi == YSF_FI_COMMUNICATIONS) {
 						if (dt == YSF_DT_VD_MODE2)
