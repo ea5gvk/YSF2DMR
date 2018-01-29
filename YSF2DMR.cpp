@@ -212,6 +212,7 @@ int CYSF2DMR::run()
 	stopWatch.start();
 	ysfWatch.start();
 	dmrWatch.start();
+	pollTimer.start();
 	unsigned char ysf_cnt = 0;
 	unsigned char dmr_cnt = 0;
 
