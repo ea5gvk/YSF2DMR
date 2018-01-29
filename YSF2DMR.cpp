@@ -669,7 +669,7 @@ bool CYSF2DMR::createDMRNetwork()
 	LogMessage("DMR Network Parameters");
 	LogMessage("    ID: %u", m_srcHS);
 	LogMessage("    Default SrcID: %u", m_defsrcid);
-	LogMessage("    Startup DstID: %s%u", m_dmrpc ? "" : "TG", m_dstid);
+	LogMessage("    Startup DstID: %s %u", m_dmrpc ? "" : "TG", m_dstid);
 	LogMessage("    Address: %s", address.c_str());
 	LogMessage("    Port: %u", port);
 	if (local > 0U)
