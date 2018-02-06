@@ -43,8 +43,8 @@ public:
 private:
 	void putAMBE2YSF(unsigned int a, unsigned int b, unsigned int dat_c);
 	void putAMBE2DMR(unsigned int dat_a, unsigned int dat_b, unsigned int dat_c);
-	int m_ysfN;
-	int m_dmrN;
+	unsigned int m_ysfN;
+	unsigned int m_dmrN;
 	CRingBuffer<unsigned char> m_YSF;
 	CRingBuffer<unsigned char> m_DMR;
 

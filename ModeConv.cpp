@@ -740,7 +740,9 @@ unsigned int CModeConv::getDMR(unsigned char* data)
 {
 	unsigned char tmp[9U];
 	unsigned char tag[1U];
-	
+
+	tag[0U] = TAG_NODATA;
+
 	if (m_dmrN >= 1U) {
 		m_DMR.peek(tag, 1U);
 
@@ -779,6 +781,8 @@ unsigned int CModeConv::getDMR(unsigned char* data)
 unsigned int CModeConv::getYSF(unsigned char* data)
 {
 	unsigned char tag[1U];
+
+	tag[0U] = TAG_NODATA;
 
 	data += YSF_SYNC_LENGTH_BYTES + YSF_FICH_LENGTH_BYTES;
 	
