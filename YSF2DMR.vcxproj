@@ -144,6 +144,7 @@
     <ClCompile Include="BPTC19696.cpp" />
     <ClCompile Include="Conf.cpp" />
     <ClCompile Include="CRC.cpp" />
+    <ClCompile Include="DelayBuffer.cpp" />
     <ClCompile Include="DMRData.cpp" />
     <ClCompile Include="DMREMB.cpp" />
     <ClCompile Include="DMREmbeddedData.cpp" />
@@ -179,6 +180,7 @@
     <ClInclude Include="Conf.h" />
     <ClInclude Include="CRC.h" />
     <ClInclude Include="Defines.h" />
+    <ClInclude Include="DelayBuffer.h" />
     <ClInclude Include="DMRData.h" />
     <ClInclude Include="DMRDefines.h" />
     <ClInclude Include="DMREMB.h" />

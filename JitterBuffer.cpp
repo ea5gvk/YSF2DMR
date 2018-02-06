@@ -162,16 +162,16 @@ bool CJitterBuffer::appendData(const unsigned char* data, unsigned int length)
 	return true;
 }
 
-JB_STATUS CJitterBuffer::getData(unsigned char* data, unsigned int& length)
+B_STATUS CJitterBuffer::getData(unsigned char* data, unsigned int& length)
 {
 	assert(data != NULL);
 
 	if (!m_running)
-		return JBS_NO_DATA;
+		return BS_NO_DATA;
 
 	unsigned int sequenceNumber = m_stopWatch.elapsed() / m_blockTime + 2U;
 	if (m_headSequenceNumber > sequenceNumber)
-		return JBS_NO_DATA;
+		return BS_NO_DATA;
 	
 	unsigned int head = m_headSequenceNumber % m_blockCount;
 
@@ -190,23 +190,23 @@ JB_STATUS CJitterBuffer::getData(unsigned char* data, unsigned int& length)
 
 		m_buffer[head].m_length = 0U;
 
-		return JBS_DATA;
+		return BS_DATA;
 	}
 
 	m_buffer[head].m_length = 0U;
 
-	//LogDebug("%s, JitterBuffer: no data available, elapsed=%ums, raw=%u, head=%u", m_name.c_str(), m_stopWatch.elapsed(), m_headSequenceNumber - 1U, head);
+	LogDebug("%s, JitterBuffer: no data available, elapsed=%ums, raw=%u, head=%u", m_name.c_str(), m_stopWatch.elapsed(), m_headSequenceNumber - 1U, head);
 
 	// Return the last data frame if we have it
 	if (m_lastDataLength > 0U) {
-		//LogDebug("%s, JitterBuffer: returning the last received frame", m_name.c_str());
+		LogDebug("%s, JitterBuffer: returning the last received frame", m_name.c_str());
 		::memcpy(data, m_lastData, m_lastDataLength);
 		length = m_lastDataLength;
 
-		return JBS_MISSING;
+		return BS_MISSING;
 	}
 
-	return JBS_NO_DATA;
+	return BS_NO_DATA;
 }
 
 void CJitterBuffer::reset()
