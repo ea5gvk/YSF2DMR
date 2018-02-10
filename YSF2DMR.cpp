@@ -646,7 +646,6 @@ bool CYSF2DMR::createDMRNetwork()
 	unsigned int local   = m_conf.getDMRNetworkLocal();
 	std::string password = m_conf.getDMRNetworkPassword();
 	bool debug           = m_conf.getDMRNetworkDebug();
-	bool jitterEnabled   = m_conf.getDMRNetworkJitterEnabled();
 	unsigned int jitter  = m_conf.getDMRNetworkJitter();
 	bool slot1           = false;
 	bool slot2           = true;
@@ -677,10 +676,9 @@ bool CYSF2DMR::createDMRNetwork()
 		LogMessage("    Local: %u", local);
 	else
 		LogMessage("    Local: random");
-	LogMessage("    JitterBuffer: %s", jitterEnabled ? "enabled" : "disabled");
 	LogMessage("    Jitter: %ums", jitter);
 
-	m_dmrNetwork = new CDMRNetwork(address, port, local, m_srcHS, password, duplex, VERSION, debug, slot1, slot2, hwType, jitterEnabled, jitter);
+	m_dmrNetwork = new CDMRNetwork(address, port, local, m_srcHS, password, duplex, VERSION, debug, slot1, slot2, hwType, jitter);
 
 	std::string options = m_conf.getDMRNetworkOptions();
 	if (!options.empty()) {

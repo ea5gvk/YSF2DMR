@@ -18,10 +18,9 @@
 */
 
 #if !defined(YSF2DMR_H)
-#define	YSF2DMR_H
+#define YSF2DMR_H
 
 #include "ModeConv.h"
-#include "JitterBuffer.h"
 #include "DMRNetwork.h"
 #include "DMREmbeddedData.h"
 #include "DMRLC.h"

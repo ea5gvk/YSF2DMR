@@ -31,8 +31,7 @@ const unsigned int BUFFER_LENGTH = 500U;
 
 const unsigned int HOMEBREW_DATA_PACKET_LENGTH = 55U;
 
-
-CDMRNetwork::CDMRNetwork(const std::string& address, unsigned int port, unsigned int local, unsigned int id, const std::string& password, bool duplex, const char* version, bool debug, bool slot1, bool slot2, HW_TYPE hwType, bool jitterEnabled, unsigned int jitter) :
+CDMRNetwork::CDMRNetwork(const std::string& address, unsigned int port, unsigned int local, unsigned int id, const std::string& password, bool duplex, const char* version, bool debug, bool slot1, bool slot2, HW_TYPE hwType, unsigned int jitter) :
 m_address(),
 m_port(port),
 m_id(NULL),
@@ -44,8 +43,6 @@ m_socket(local),
 m_enabled(false),
 m_slot1(slot1),
 m_slot2(slot2),
-m_jitterEnabled(jitterEnabled),
-m_jitterBuffers(NULL),
 m_delayBuffers(NULL),
 m_hwType(hwType),
 m_status(WAITING_CONNECT),
@@ -81,11 +78,7 @@ m_beacon(false)
 	m_id            = new uint8_t[4U];
 	m_streamId      = new uint32_t[2U];
 
-	m_jitterBuffers = new CJitterBuffer*[3U];
 	m_delayBuffers  = new CDelayBuffer*[3U];
-
-	m_jitterBuffers[1U] = new CJitterBuffer("DMR Slot 1", 60U, DMR_SLOT_TIME, jitter, 256U, debug);
-	m_jitterBuffers[2U] = new CJitterBuffer("DMR Slot 2", 60U, DMR_SLOT_TIME, jitter, 256U, debug);
 
 	m_delayBuffers[1U] = new CDelayBuffer("DMR Slot 1", HOMEBREW_DATA_PACKET_LENGTH, DMR_SLOT_TIME, jitter, debug);
 	m_delayBuffers[2U] = new CDelayBuffer("DMR Slot 2", HOMEBREW_DATA_PACKET_LENGTH, DMR_SLOT_TIME, jitter, debug);
@@ -104,9 +97,6 @@ m_beacon(false)
 
 CDMRNetwork::~CDMRNetwork()
 {
-	delete m_jitterBuffers[1U];
-	delete m_jitterBuffers[2U];
-
 	delete m_delayBuffers[1U];
 	delete m_delayBuffers[2U];
 
@@ -115,7 +105,6 @@ CDMRNetwork::~CDMRNetwork()
 	delete[] m_streamId;
 	delete[] m_id;
 
-	delete[] m_jitterBuffers;
 	delete[] m_delayBuffers;
 }
 
@@ -164,10 +153,7 @@ bool CDMRNetwork::read(CDMRData& data)
 		unsigned int length = 0U;
 		B_STATUS status = BS_NO_DATA;
 
-		if (m_jitterEnabled)
-			status = m_jitterBuffers[slotNo]->getData(m_buffer, length);
-		else
-			status = m_delayBuffers[slotNo]->getData(m_buffer, length);
+		status = m_delayBuffers[slotNo]->getData(m_buffer, length);
 
 		if (status != BS_NO_DATA) {
 			unsigned char seqNo = m_buffer[4U];
@@ -345,9 +331,6 @@ void CDMRNetwork::close()
 
 void CDMRNetwork::clock(unsigned int ms)
 {
-	m_jitterBuffers[1U]->clock(ms);
-	m_jitterBuffers[2U]->clock(ms);
-
 	m_delayBuffers[1U]->clock(ms);
 	m_delayBuffers[2U]->clock(ms);
 
@@ -494,11 +477,9 @@ void CDMRNetwork::reset(unsigned int slotNo)
 	assert(slotNo == 1U || slotNo == 2U);
 
 	if (slotNo == 1U) {
-		m_jitterBuffers[1U]->reset();
 		m_delayBuffers[1U]->reset();
 		m_streamId[0U] = ::rand() + 1U;
 	} else {
-		m_jitterBuffers[2U]->reset();
 		m_delayBuffers[2U]->reset();
 		m_streamId[1U] = ::rand() + 1U;
 	}
@@ -521,23 +502,8 @@ void CDMRNetwork::receiveData(const unsigned char* data, unsigned int length)
 	if (slotNo == 2U && !m_slot2)
 		return;
 
-	if (m_jitterEnabled) {
-		unsigned char dataType = data[15U] & 0x3FU;
-		if (dataType == (0x20U | DT_CSBK) ||
-			dataType == (0x20U | DT_DATA_HEADER) ||
-			dataType == (0x20U | DT_RATE_1_DATA) ||
-			dataType == (0x20U | DT_RATE_34_DATA) ||
-			dataType == (0x20U | DT_RATE_12_DATA)) {
-			// Data & CSBK frames
-			m_jitterBuffers[slotNo]->appendData(data, length);
-		} else {
-			// Voice frames
-			unsigned char seqNo = data[4U];
-			m_jitterBuffers[slotNo]->addData(data, length, seqNo);
-		}
-	} else {
-		m_delayBuffers[slotNo]->addData(data, length);
-	}
+	m_delayBuffers[slotNo]->addData(data, length);
+
 }
 
 bool CDMRNetwork::writeLogin()

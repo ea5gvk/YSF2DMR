@@ -19,7 +19,6 @@
 #if !defined(DMRNetwork_H)
 #define	DMRNetwork_H
 
-#include "JitterBuffer.h"
 #include "DelayBuffer.h"
 #include "UDPSocket.h"
 #include "Timer.h"
@@ -32,7 +31,7 @@
 class CDMRNetwork
 {
 public:
-	CDMRNetwork(const std::string& address, unsigned int port, unsigned int local, unsigned int id, const std::string& password, bool duplex, const char* version, bool debug, bool slot1, bool slot2, HW_TYPE hwType, bool jitterEnabled, unsigned int jitter);
+	CDMRNetwork(const std::string& address, unsigned int port, unsigned int local, unsigned int id, const std::string& password, bool duplex, const char* version, bool debug, bool slot1, bool slot2, HW_TYPE hwType, unsigned int jitter);
 	~CDMRNetwork();
 
 	void setOptions(const std::string& options);
@@ -71,8 +70,6 @@ private:
 	bool            m_enabled;
 	bool            m_slot1;
 	bool            m_slot2;
-	bool            m_jitterEnabled;
-	CJitterBuffer** m_jitterBuffers;
 	CDelayBuffer**  m_delayBuffers;
 	HW_TYPE         m_hwType;
 

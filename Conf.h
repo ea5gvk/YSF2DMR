@@ -60,7 +60,6 @@ public:
   std::string  getDMRNetworkPassword() const;
   std::string  getDMRNetworkOptions() const;
   bool         getDMRNetworkDebug() const;
-  bool         getDMRNetworkJitterEnabled() const;
   unsigned int getDMRNetworkJitter() const;
 
   // The DMR Id section
@@ -101,7 +100,6 @@ private:
   std::string  m_dmrNetworkPassword;
   std::string  m_dmrNetworkOptions;
   bool         m_dmrNetworkDebug;
-  bool         m_dmrNetworkJitterEnabled;
   unsigned int m_dmrNetworkJitter;
 
   std::string  m_dmrIdLookupFile;

@@ -62,7 +62,6 @@ m_dmrNetworkLocal(0U),
 m_dmrNetworkPassword(),
 m_dmrNetworkOptions(),
 m_dmrNetworkDebug(false),
-m_dmrNetworkJitterEnabled(true),
 m_dmrNetworkJitter(500U),
 m_dmrIdLookupFile(),
 m_dmrIdLookupTime(0U),
@@ -168,8 +167,6 @@ bool CConf::read()
 			m_dmrNetworkOptions = value;
 		else if (::strcmp(key, "Debug") == 0)
 			m_dmrNetworkDebug = ::atoi(value) == 1;
-		else if (::strcmp(key, "JitterEnabled") == 0)
-			m_dmrNetworkJitterEnabled = ::atoi(value) == 1;
 		else if (::strcmp(key, "Jitter") == 0)
 			m_dmrNetworkJitter = (unsigned int)::atoi(value);
 	} else if (section == SECTION_DMRID_LOOKUP) {
@@ -312,11 +309,6 @@ std::string CConf::getDMRNetworkOptions() const
 bool CConf::getDMRNetworkDebug() const
 {
 	return m_dmrNetworkDebug;
-}
-
-bool CConf::getDMRNetworkJitterEnabled() const
-{
-	return m_dmrNetworkJitterEnabled;
 }
 
 unsigned int CConf::getDMRNetworkJitter() const
