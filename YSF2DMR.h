@@ -20,6 +20,7 @@
 #if !defined(YSF2DMR_H)
 #define YSF2DMR_H
 
+#include "DMRDefines.h"
 #include "ModeConv.h"
 #include "DMRNetwork.h"
 #include "DMREmbeddedData.h"
